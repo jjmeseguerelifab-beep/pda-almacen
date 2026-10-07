@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tareas · Almacén Elifab</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg: var(--tg-theme-bg-color, #ffffff);
+  --bg2: var(--tg-theme-secondary-bg-color, #f1f4f4);
+  --ink: var(--tg-theme-text-color, #16211f);
+  --hint: var(--tg-theme-hint-color, #6b7a78);
+  --line: color-mix(in srgb, var(--ink) 12%, transparent);
+  --teal: #1F8A78; --teal-soft: color-mix(in srgb, #1F8A78 14%, transparent);
+  --red: #D7263D; --amber: #E39B2D; --green: #2E9E5B;
+  --r: 14px;
+  --font: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --cond: 'Barlow Condensed', 'Barlow', system-ui, sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg2);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.4}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 10px;border-bottom:1px solid var(--line)}
+header h1{margin:0;font-family:var(--cond);font-weight:700;font-size:26px;letter-spacing:.2px;line-height:1.1}
+header p{margin:2px 0 0;color:var(--hint);font-size:14px}
+main{padding:12px 12px 110px;max-width:720px;margin:0 auto}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:var(--bg);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+nav.tabs button{flex:1;border:0;background:none;padding:6px 2px;border-radius:10px;color:var(--hint);font-size:12.5px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+nav.tabs button .ico{font-size:21px;line-height:1}
+nav.tabs button[aria-selected=true]{color:var(--teal);font-weight:600}
+nav.tabs .badge{position:absolute;top:2px;right:calc(50% - 22px);background:var(--red);color:#fff;border-radius:9px;font-size:11px;min-width:18px;padding:0 5px;line-height:18px;font-weight:600}
+
+h2.grupo{font-family:var(--cond);font-weight:600;font-size:19px;margin:18px 4px 8px;display:flex;align-items:baseline;gap:8px}
+h2.grupo small{font-family:var(--font);font-weight:500;color:var(--hint);font-size:14px}
+.vacio{background:var(--bg);border-radius:var(--r);padding:28px 20px;text-align:center;color:var(--hint)}
+.vacio b{display:block;color:var(--ink);font-size:18px;margin-bottom:4px}
+
+/* Tarjeta: la cinta de prioridad a la izquierda es el sello de la app */
+.card{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;background:var(--bg);border-radius:var(--r);padding:12px 14px 12px 22px;margin-bottom:8px;width:100%;text-align:left;overflow:hidden;cursor:pointer}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--teal)}
+.card.p-ALTA::before{background:var(--amber)}
+.card.p-URGENTE::before{background:repeating-linear-gradient(-45deg,var(--red) 0 6px,#2b0a10 6px 12px)}
+.card.cerrada{opacity:.62}
+.card .cuerpo{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.card .ref{color:var(--hint);font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .tit{font-weight:600;font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+.card .sub{color:var(--hint);font-size:14px}
+.card .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.chip{font-size:12.5px;padding:2px 9px;border-radius:20px;background:var(--bg2);color:var(--ink);font-weight:500}
+.chip.inc{background:color-mix(in srgb,var(--amber) 22%,transparent)}
+.chip.curso{background:var(--teal-soft);color:var(--teal)}
+.chip.dec{background:color-mix(in srgb,var(--red) 12%,transparent)}
+.reloj{flex:none;text-align:right;font-family:var(--cond);line-height:1;max-width:40%}
+.reloj b{display:block;font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.reloj span{font-size:13px;color:var(--hint);font-family:var(--font)}
+.reloj.tarde b{color:var(--red)}
+.reloj.pronto b{color:var(--amber)}
+.card .coger{flex-basis:100%;margin-top:4px}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:56px;border-radius:12px;border:0;font-weight:600;font-size:17px;padding:10px 14px}
+.btn.pri{background:var(--teal);color:#fff}
+.btn.sec{background:var(--bg2);color:var(--ink)}
+.btn.warn{background:color-mix(in srgb,var(--amber) 22%,var(--bg));color:var(--ink)}
+.btn.red{background:color-mix(in srgb,var(--red) 14%,var(--bg));color:var(--red)}
+.btn[disabled]{opacity:.5}
+.fila{display:flex;gap:8px}
+.fila > *{flex:1}
+
+/* Hoja inferior de detalle */
+.velo{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20;display:none}
+.hoja{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--bg);border-radius:20px 20px 0 0;max-height:92vh;overflow:auto;padding:10px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(105%);transition:transform .22s ease}
+.hoja.abierta{transform:none}
+.hoja .asa{width:44px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 12px}
+.hoja h3{margin:0 0 2px;font-size:21px;line-height:1.2}
+.hoja .meta{color:var(--hint);font-size:14.5px;margin-bottom:12px}
+.datos{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px;margin:10px 0 16px;background:var(--bg2);border-radius:12px;padding:12px}
+.datos dt{color:var(--hint)}
+.datos dd{margin:0;word-break:break-word}
+.acciones{display:grid;gap:8px}
+.enlaces{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 14px}
+.enlaces button{border:1px solid var(--line);background:var(--bg);border-radius:20px;padding:8px 14px;font-weight:500}
+
+/* Formularios */
+.form{background:var(--bg);border-radius:var(--r);padding:14px}
+label.c{display:block;font-weight:600;font-size:14.5px;margin:12px 0 5px}
+label.c:first-child{margin-top:0}
+label.c small{font-weight:400;color:var(--hint)}
+.in{width:100%;min-height:48px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);padding:10px 12px;font-size:16px}
+textarea.in{min-height:76px;resize:vertical}
+.seg{display:flex;background:var(--bg2);border-radius:11px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;border-radius:9px;min-height:42px;font-weight:500;font-size:15px}
+.seg button[aria-pressed=true]{background:var(--bg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.seg.prio button[aria-pressed=true][data-v=URGENTE]{color:var(--red)}
+.seg.prio button[aria-pressed=true][data-v=ALTA]{color:var(--amber)}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Ranking: posición 1, 2, 3… sí es una secuencia */
+.rk{background:var(--bg);border-radius:var(--r);padding:6px 14px}
+.rk li{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.rk li:last-child{border-bottom:0}
+.rk .pos{font-family:var(--cond);font-weight:700;font-size:26px;color:var(--hint);text-align:center}
+.rk li:first-child .pos{color:var(--teal)}
+.rk .nom{font-weight:600}
+.rk .barra{height:6px;border-radius:3px;background:var(--teal-soft);margin-top:5px;overflow:hidden}
+.rk .barra i{display:block;height:100%;background:var(--teal)}
+.rk .pts{font-family:var(--cond);font-weight:700;font-size:22px;text-align:right}
+.rk .pts small{display:block;font-family:var(--font);font-weight:400;font-size:12.5px;color:var(--hint)}
+ol.rk{list-style:none;margin:0}
+
+.filtros{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none}
+.filtros button{flex:none;border:1px solid var(--line);background:var(--bg);border-radius:20px;padding:7px 14px;font-weight:500;font-size:14.5px}
+.filtros button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.refs{background:var(--bg2);border-radius:12px;padding:4px 10px}
+.pz{display:grid;grid-template-columns:28px 1fr 64px;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.pz:last-child{border-bottom:0}
+.pz input[type=checkbox]{width:24px;height:24px;accent-color:var(--teal)}
+.pz .cod{font-weight:600;font-variant-numeric:tabular-nums}
+.pz .tipo{font-size:12.5px;color:var(--hint)}
+.pz input[type=number]{width:64px;min-height:40px;border:1px solid var(--line);border-radius:8px;background:var(--bg);text-align:center}
+
+.toast{position:fixed;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:30;background:var(--ink);color:var(--bg);border-radius:12px;padding:13px 16px;font-weight:500;transform:translateY(20px);opacity:0;transition:all .2s;pointer-events:none}
+.toast.ver{transform:none;opacity:1}
+.cargando{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:40;background:color-mix(in srgb,var(--bg2) 70%,transparent)}
+.cargando i{width:34px;height:34px;border-radius:50%;border:4px solid var(--teal-soft);border-top-color:var(--teal);animation:g .8s linear infinite}
+@keyframes g{to{transform:rotate(360deg)}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="saludo">Tareas del almacén</h1>
+  <p id="sub">Cargando…</p>
+</header>
+<main id="vista"></main>
+<nav class="tabs" id="tabs" role="tablist"></nav>
+<div class="velo" id="velo"></div>
+<section class="hoja" id="hoja" role="dialog" aria-modal="true"><div class="asa"></div><div id="hojaC"></div></section>
+<div class="toast" id="toast" role="status"></div>
+<div class="cargando" id="cargando" hidden><i></i></div>
+<input type="file" id="camara" accept="image/*" capture="environment" hidden>
+
+<script>
+const tg = window.Telegram ? Telegram.WebApp : null;
+if (tg) { tg.ready(); tg.expand(); }
+const qs = new URLSearchParams(location.search);
+let D = null;                 // datos del servidor
+let tab = 'mias';
+let filtro = 'todas';
+let rkModo = 'semana';
+let fotoPend = null;          // {uid, act}
+const $ = s => document.querySelector(s);
+const h = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ------------------------------------------------------------------ servidor
+async function api(accion, datos, silencioso) {
+  if (!silencioso) $('#cargando').hidden = false;
+  try {
+    const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ accion, initData: tg ? tg.initData : '' }, datos || {})) });
+    const j = await r.json();
+    if (j.mias) D = j;
+    return j;
+  } catch (e) {
+    return { ok: false, msg: 'Sin conexión con el servidor. Comprueba la cobertura y vuelve a intentarlo.' };
+  } finally { $('#cargando').hidden = true; }
+}
+function aviso(t, tipo) {
+  const el = $('#toast'); el.textContent = t; el.classList.add('ver');
+  clearTimeout(aviso.t); aviso.t = setTimeout(() => el.classList.remove('ver'), 2600);
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(tipo || 'success');
+}
+function abrir(url) { if (!url) return; if (tg) tg.openLink(url); else window.open(url, '_blank'); }
+
+// ------------------------------------------------------------------ tiempo
+const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+function fechaTxt(k) { if (!k) return 'Sin fecha'; const d = new Date(k + 'T12:00'); return DIAS[d.getDay()] + ' ' + k.slice(8, 10) + '/' + k.slice(5, 7); }
+function hoyK() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function reloj(t) {
+  if (!t.limite) return { txt: '—', sub: 'sin fecha', cls: '' };
+  const min = Math.round((t.limite - Date.now()) / 60000);
+  if (min < 0) {
+    const a = -min;
+    return { txt: a < 60 ? a + ' min' : a < 1440 ? Math.round(a / 60) + ' h' : Math.round(a / 1440) + ' d', sub: 'de retraso', cls: 'tarde' };
+  }
+  if (min < 60) return { txt: min + ' min', sub: 'quedan', cls: 'pronto' };
+  if (t.compromiso === hoyK()) return { txt: t.hora || 'Hoy', sub: t.hora ? 'hoy' : 'antes de las 15:30', cls: min < 120 ? 'pronto' : '' };
+  const dias = Math.round((new Date(t.compromiso + 'T12:00') - new Date(hoyK() + 'T12:00')) / 864e5);
+  return { txt: dias === 1 ? 'Mañana' : fechaTxt(t.compromiso), sub: t.hora || (dias === 1 ? '' : 'compromiso'), cls: '' };
+}
+
+// ------------------------------------------------------------------ pestañas
+function pestanas() {
+  const a = D && D.yo.admin;
+  const t = [['mias', '📋', 'Mías', D ? D.mias.length : 0], ['bolsa', '🙋', 'Bolsa', D ? D.bolsa.length : 0],
+    ['nueva', '➕', 'Nueva', 0]];
+  if (D && D.ranking) t.push(['ranking', '🏆', 'Ranking', 0]);
+  if (a) t.push(['equipo', '👥', 'Equipo', 0], ['correos', '📧', 'Correos', (D.correos || []).length]);
+  $('#tabs').innerHTML = t.map(([k, i, n, b]) => `<button role="tab" aria-selected="${tab === k}" data-tab="${k}"><span class="ico">${i}</span>${n}${b && k !== 'mias' ? `<span class="badge">${b}</span>` : ''}</button>`).join('');
+  $('#tabs').querySelectorAll('button').forEach(b => b.onclick = () => { tab = b.dataset.tab; pintar(); window.scrollTo(0, 0); });
+}
+
+function tarjeta(t, conResp) {
+  const r = reloj(t);
+  const chips = [];
+  if (t.estado === 'EN CURSO') chips.push('<span class="chip curso">En curso</span>');
+  if (t.estado === 'INCIDENCIA') chips.push(`<span class="chip inc">Incidencia: ${h(t.motivo)}</span>`);
+  if (t.estado === 'EN ESPERA') chips.push('<span class="chip">En espera</span>');
+  if (conResp) chips.push(`<span class="chip">${h(t.responsable)}</span>`);
+  if (t.of) chips.push(`<span class="chip">OF ${h(t.of)}</span>`);
+  if (t.flujo && t.decision === 'POR CONFIRMAR') chips.push('<span class="chip dec">Falta decidir</span>');
+  if (t.destino) chips.push('<span class="chip">📍 Ruta</span>');
+  if (t.foto === 'OBLIGATORIA') chips.push('<span class="chip">📷 Foto</span>');
+  const coger = t.pool ? `<div class="coger"><span class="btn pri" data-coger="${t.uid}">🙋 La cojo yo</span></div>` : '';
+  return `<div class="card p-${h(t.prioridad)} ${['COMPLETO', 'ANULADO'].includes(t.estado) ? 'cerrada' : ''}" role="button" tabindex="0" data-uid="${t.uid}">
+    <div class="cuerpo"><span class="ref">#${h(t.ref)}${t.problema ? ' · ' + h(t.problema) : ''}</span>
+    <span class="tit">${h(t.tarea)}</span>
+    ${t.prioridad === 'URGENTE' ? '<span class="sub" style="color:var(--red);font-weight:600">Urgente</span>' : ''}
+    ${chips.length ? `<span class="chips">${chips.join('')}</span>` : ''}</div>
+    <div class="reloj ${r.cls}"><b>${h(r.txt)}</b><span>${h(r.sub)}</span></div>${coger}</div>`;
+}
+function lista(ts, vacio, conResp) {
+  if (!ts.length) return `<div class="vacio">${vacio}</div>`;
+  return ts.map(t => tarjeta(t, conResp)).join('');
+}
+function agrupar(ts) {
+  const hoy = hoyK(), g = { tarde: [], hoy: [], prox: [], sin: [] };
+  ts.forEach(t => {
+    if (t.limite && t.limite < Date.now()) g.tarde.push(t);
+    else if (!t.compromiso) g.sin.push(t);
+    else if (t.compromiso === hoy) g.hoy.push(t);
+    else g.prox.push(t);
+  });
+  return g;
+}
+function bloque(titulo, ts, conResp) { return ts.length ? `<h2 class="grupo">${titulo} <small>${ts.length}</small></h2>` + lista(ts, '', conResp) : ''; }
+
+// ------------------------------------------------------------------ vistas
+function pintar() {
+  if (!D) return;
+  pestanas();
+  const v = $('#vista');
+  const nombre = D.yo.nombre.split(' ')[0];
+  $('#saludo').textContent = 'Hola, ' + nombre.charAt(0) + nombre.slice(1).toLowerCase();
+  if (tab === 'mias') {
+    const g = agrupar(D.mias);
+    $('#sub').textContent = D.mias.length ? D.mias.length + ' tareas abiertas' : 'Todo al día';
+    v.innerHTML = D.mias.length ? bloque('Con retraso', g.tarde) + bloque('Hoy', g.hoy) + bloque('Próximas', g.prox) + bloque('Sin fecha', g.sin)
+      : '<div class="vacio"><b>No tienes tareas abiertas</b>Mira la bolsa: cada tarea que cojas suma un punto extra.</div>';
+  } else if (tab === 'bolsa') {
+    $('#sub').textContent = 'Tareas sin dueño';
+    v.innerHTML = lista(D.bolsa, '<b>La bolsa está vacía</b>Cuando haya una tarea libre te llegará aviso.');
+  } else if (tab === 'nueva') { $('#sub').textContent = 'Para ti, un compañero o la bolsa'; vistaNueva(v); }
+  else if (tab === 'ranking') { $('#sub').textContent = 'Puntos por tareas completadas'; vistaRanking(v); }
+  else if (tab === 'equipo') { vistaEquipo(v); }
+  else if (tab === 'correos') { vistaCorreos(v); }
+  v.querySelectorAll('[data-uid]').forEach(b => b.onkeydown = e => { if (e.key === 'Enter') b.click(); });
+  v.querySelectorAll('[data-uid]').forEach(b => b.onclick = e => {
+    if (e.target.closest('[data-coger]')) return accion(b.dataset.uid, 'coger');
+    detalle(buscar(b.dataset.uid));
+  });
+}
+function buscar(uid) {
+  return [].concat(D.mias, D.bolsa, D.creadas || [], D.equipo || []).find(t => t.uid === uid);
+}
+
+function vistaRanking(v) {
+  const rk = D.ranking[rkModo] || [];
+  const max = Math.max(1, ...rk.map(r => r.puntos));
+  v.innerHTML = `<div class="seg" style="margin-bottom:12px"><button data-m="semana" aria-pressed="${rkModo === 'semana'}">Esta semana</button><button data-m="mes" aria-pressed="${rkModo === 'mes'}">Este mes</button></div>` +
+    (rk.length ? `<ol class="rk">${rk.map((r, i) => `<li><span class="pos">${i + 1}</span><span><span class="nom">${h(r.nombre)}</span><span class="barra"><i style="width:${Math.round(r.puntos / max * 100)}%"></i></span></span><span class="pts">${r.puntos}<small>${r.tareas} tareas</small></span></li>`).join('')}</ol>`
+      : '<div class="vacio"><b>Aún no hay puntos</b>Completa tareas para entrar en el ranking. En plazo y desde la bolsa suman más.</div>');
+  v.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { rkModo = b.dataset.m; pintar(); });
+}
+
+function vistaEquipo(v) {
+  const ts = D.equipo || [];
+  const f = { todas: () => true, inc: t => t.estado === 'INCIDENCIA', tarde: t => t.limite && t.limite < Date.now(), urg: t => t.prioridad === 'URGENTE', dec: t => t.flujo && t.decision === 'POR CONFIRMAR', bolsa: t => t.pool };
+  const cuenta = k => ts.filter(f[k]).length;
+  $('#sub').textContent = ts.length + ' tareas abiertas en el equipo';
+  const fb = [['todas', 'Todas'], ['tarde', 'Con retraso'], ['inc', 'Incidencias'], ['urg', 'Urgentes'], ['dec', 'Falta decidir'], ['bolsa', 'Sin dueño']];
+  v.innerHTML = `<div class="filtros">${fb.map(([k, n]) => `<button data-f="${k}" aria-pressed="${filtro === k}">${n} ${cuenta(k)}</button>`).join('')}</div>` +
+    lista(ts.filter(f[filtro]), '<b>Nada por aquí</b>No hay tareas con este filtro.', true);
+  v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filtro = b.dataset.f; pintar(); });
+}
+
+function vistaCorreos(v) {
+  const cs = D.correos || [];
+  $('#sub').textContent = cs.length ? cs.length + ' correos por revisar' : 'Sin correos pendientes';
+  v.innerHTML = cs.length ? cs.map(c => `<div class="card" role="button" tabindex="0" data-correo="${h(c.id)}"><div class="cuerpo"><span class="ref">${h(c.fecha)} · ${h(c.solicitante)}</span><span class="tit">${h(c.grupo || c.asunto)}</span><span class="sub">${h(c.asunto)}</span></div></div>`).join('')
+    : '<div class="vacio"><b>No hay correos por revisar</b>Reenvía un correo con el paso rápido «→ PdA» de Outlook y aparecerá aquí en unos minutos.</div>';
+  v.querySelectorAll('[data-correo]').forEach(b => b.onclick = () => triaje(b.dataset.correo));
+}
+
+// ------------------------------------------------------------------ detalle y acciones
+function botonesCierre(t) {
+  if (t.flujo === 'DESMONTAJE') return [['ok', '📦 Entregado en almacén']];
+  if (t.flujo === 'ALMACEN') {
+    if (t.decision === 'TIRAR') return [['tir', '🗑️ Tirado']];
+    if (t.decision === 'ALMACENAR') return [['alm', '📦 Almacenado']];
+    return [['alm', '📦 Almacenado'], ['tir', '🗑️ Tirado']];
+  }
+  return [['ok', '✅ Completada']];
+}
+function detalle(t) {
+  if (!t) return;
+  const abierta = !['COMPLETO', 'ANULADO', 'POR ASIGNAR'].includes(t.estado);
+  const mia = t.responsable && D.yo.nombre && t.responsable.toUpperCase() === D.yo.nombre.toUpperCase();
+  const adm = D.yo.admin;
+  const filas = [['Estado', t.estado + (t.resultado ? ' · ' + t.resultado : '') + (t.motivo && t.estado === 'INCIDENCIA' ? ' · ' + t.motivo : '')],
+    ['Para', t.responsable], ['Compromiso', fechaTxt(t.compromiso) + (t.hora ? ', ' + t.hora : '')], ['Prioridad', t.prioridad],
+    t.of || t.grupo ? ['OF / grupo', [t.of, t.grupo].filter(Boolean).join(' · ')] : null, t.referencias ? ['Piezas', t.referencias] : null,
+    t.flujo ? ['Decisión', t.decision || 'POR CONFIRMAR'] : null, t.solicitante ? ['Solicita', t.solicitante] : null,
+    t.comentarios ? ['Comentarios', t.comentarios.replace(/https?:\/\/\S+/g, '(enlace abajo)')] : null,
+    t.foto ? ['Foto', t.foto === 'OBLIGATORIA' ? 'Obligatoria al cerrar' : 'Opcional'] : null, t.creadoPor ? ['Creada por', t.creadoPor] : null].filter(Boolean);
+  const enl = [];
+  if (t.destino) enl.push(['📍 Cómo llegar', t.destino]);
+  if (/^https?:/.test(t.origen)) enl.push(['📧 Ver correo', t.origen]);
+  const m = (t.comentarios || '').match(/https?:\/\/\S+/);
+  if (m) enl.push([/foto de la entrega/i.test(t.comentarios) ? '📷 Foto de la entrega' : '🔗 Enlace', m[0]]);
+  if (/^https?:/.test(t.evidencia)) enl.push(['📷 Ver foto', t.evidencia]);
+
+  let acc = '';
+  if (abierta && t.pool) acc += `<button class="btn pri" data-a="coger">🙋 La cojo yo</button>`;
+  else if (abierta && (mia || adm)) {
+    const cierre = botonesCierre(t).map(([a, n]) => `<button class="btn pri" data-a="${a}">${n}</button>`).join('');
+    acc += t.estado === 'EN CURSO' ? cierre : `<div class="fila"><button class="btn sec" data-a="cur">▶️ ${t.estado === 'INCIDENCIA' ? 'Reanudar' : 'En curso'}</button></div>` + cierre;
+    if (t.estado !== 'INCIDENCIA') acc += `<button class="btn warn" data-a="inc">⚠️ Incidencia</button>`;
+    if (!t.evidencia) acc += `<button class="btn sec" data-a="foto">📷 Añadir foto</button>`;
+  }
+  if (adm && abierta) {
+    acc += `<h2 class="grupo" style="margin-top:14px">Gestión</h2>`;
+    if (t.flujo && t.decision !== 'ALMACENAR' && t.decision !== 'TIRAR')
+      acc += `<div class="fila"><button class="btn sec" data-dec="ALMACENAR">📦 Almacenar</button><button class="btn sec" data-dec="TIRAR">🗑️ Tirar</button></div>`;
+    acc += `<div class="fila"><select class="in" id="reasig">${personasOpts(t.responsable)}</select><button class="btn sec" data-a="asg" style="max-width:130px">Reasignar</button></div>`;
+    acc += `<button class="btn red" data-a="anular">Anular tarea</button>`;
+  }
+  $('#hojaC').innerHTML = `<h3>${h(t.tarea)}</h3><div class="meta">#${h(t.ref)}${t.problema ? ' · ' + h(t.problema) : ''}</div>
+    ${enl.length ? `<div class="enlaces">${enl.map(([n, u], i) => `<button data-l="${i}">${n}</button>`).join('')}</div>` : ''}
+    <dl class="datos">${filas.map(([k, v]) => `<dt>${h(k)}</dt><dd>${h(v)}</dd>`).join('')}</dl>
+    <div class="acciones">${acc}</div>`;
+  $('#hojaC').querySelectorAll('[data-l]').forEach(b => b.onclick = () => abrir(enl[+b.dataset.l][1]));
+  $('#hojaC').querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+    const a = b.dataset.a;
+    if (a === 'inc') return motivos(t);
+    if (a === 'foto') { fotoPend = { uid: t.uid, act: '' }; return $('#camara').click(); }
+    if (a === 'asg') return accion(t.uid, 'asg', { responsable: $('#reasig').value });
+    if (a === 'anular') { if (tg) return tg.showConfirm('¿Anular la tarea #' + t.ref + '?', ok => ok && accion(t.uid, 'anular')); return accion(t.uid, 'anular'); }
+    accion(t.uid, a);
+  });
+  $('#hojaC').querySelectorAll('[data-dec]').forEach(b => b.onclick = () => accion(t.uid, 'dec', { decision: b.dataset.dec }));
+  abrirHoja();
+}
+function personasOpts(sel, conPools) {
+  const ps = (conPools !== false ? [{ nombre: 'BOLSA' }, { nombre: 'PRODUCCIÓN' }] : []).concat(D.personas || []);
+  return ps.map(p => `<option ${p.nombre === sel ? 'selected' : ''}>${h(p.nombre)}</option>`).join('');
+}
+function motivos(t) {
+  $('#hojaC').innerHTML = `<h3>¿Qué ocurre?</h3><div class="meta">#${h(t.ref)} · ${h(t.tarea)}</div><div class="acciones">` +
+    D.motivos.map((m, i) => `<button class="btn sec" data-m="${i}">${h(m)}</button>`).join('') + `<button class="btn" data-m="x">Volver</button></div>`;
+  $('#hojaC').querySelectorAll('[data-m]').forEach(b => b.onclick = () => b.dataset.m === 'x' ? detalle(t) : accion(t.uid, 'inc', { motivo: D.motivos[+b.dataset.m] }));
+}
+function abrirHoja() { $('#velo').style.display = 'block'; requestAnimationFrame(() => $('#hoja').classList.add('abierta')); }
+function cerrarHoja() { $('#hoja').classList.remove('abierta'); setTimeout(() => { $('#velo').style.display = 'none'; }, 200); }
+$('#velo').onclick = cerrarHoja;
+
+async function accion(uid, act, extra) {
+  const r = await api('accion', { uid, act, extra: extra || {} });
+  if (r.needPhoto) {
+    const t = buscar(uid);
+    if (r.needPhoto === 'OBLIGATORIA') { fotoPend = { uid, act: r.act }; aviso('Haz la foto para cerrar la tarea', 'warning'); return $('#camara').click(); }
+    $('#hojaC').innerHTML = `<h3>¿Añades una foto?</h3><div class="meta">#${h(t ? t.ref : '')} · es opcional</div><div class="acciones">
+      <button class="btn pri" id="sif">📷 Hacer foto y cerrar</button><button class="btn sec" id="nof">Cerrar sin foto</button></div>`;
+    $('#sif').onclick = () => { fotoPend = { uid, act: r.act }; $('#camara').click(); };
+    $('#nof').onclick = () => accion(uid, r.act, { sinFoto: true });
+    return abrirHoja();
+  }
+  if (!r.ok) return aviso(r.msg || 'No se ha podido guardar', 'error');
+  cerrarHoja(); aviso(r.msg || 'Guardado'); pintar();
+}
+
+$('#camara').onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f || !fotoPend) return;
+  const b64 = await comprimir(f);
+  const r = await api('foto', { uid: fotoPend.uid, act: fotoPend.act, b64 });
+  fotoPend = null;
+  if (!r.ok) return aviso(r.msg || 'No se ha podido subir la foto', 'error');
+  cerrarHoja(); aviso(r.msg || 'Foto guardada'); pintar();
+};
+function comprimir(file) {
+  return new Promise((ok, ko) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 1600, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      ok(c.toDataURL('image/jpeg', 0.8).split(',')[1]);
+    };
+    img.onerror = ko;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+// ------------------------------------------------------------------ nueva tarea
+function vistaNueva(v) {
+  const hoy = hoyK();
+  v.innerHTML = `<form class="form" id="fn">
+    <label class="c" for="f_tarea">Qué hay que hacer</label><textarea class="in" id="f_tarea" required placeholder="Recoger 4 vigas IPE en Hierros Martínez"></textarea>
+    <label class="c" for="f_prob">Asunto <small>opcional</small></label><input class="in" id="f_prob" placeholder="Recogida proveedor">
+    <label class="c" for="f_resp">Para quién</label><select class="in" id="f_resp">${personasOpts('BOLSA')}</select>
+    <div class="dos"><div><label class="c" for="f_fecha">Fecha</label><input class="in" type="date" id="f_fecha" value="${hoy}" min="${hoy}"></div>
+      <div><label class="c" for="f_hora">Hora límite <small>opcional</small></label><input class="in" type="time" id="f_hora"></div></div>
+    <label class="c">Prioridad</label><div class="seg prio" id="f_prio">${['NORMAL', 'ALTA', 'URGENTE'].map(p => `<button type="button" data-v="${p}" aria-pressed="${p === 'NORMAL'}">${p.charAt(0) + p.slice(1).toLowerCase()}</button>`).join('')}</div>
+    <label class="c" for="f_dest">Destino <small>pega el enlace de Google Maps</small></label><input class="in" id="f_dest" inputmode="url" placeholder="https://maps.app.goo.gl/…">
+    <div class="dos"><div><label class="c" for="f_aviso">Avisar antes <small>min</small></label><input class="in" type="number" id="f_aviso" min="5" step="5" value="${D.avisoDef || 30}"></div>
+      <div><label class="c">Foto al cerrar</label><div class="seg" id="f_foto">${[['', 'No'], ['OPCIONAL', 'Opcional'], ['OBLIGATORIA', 'Sí']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${k === ''}">${n}</button>`).join('')}</div></div></div>
+    <label class="c" for="f_com">Comentarios <small>opcional</small></label><input class="in" id="f_com">
+    <div style="margin-top:16px"><button class="btn pri" type="submit">Crear tarea</button></div></form>
+    ${(D.creadas || []).length ? `<h2 class="grupo">Las que has pedido <small>${D.creadas.length}</small></h2>` + lista(D.creadas, '', true) : ''}`;
+  v.querySelectorAll('.seg').forEach(s => s.querySelectorAll('button').forEach(b => b.onclick = () => s.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b))));
+  const val = id => v.querySelector('#' + id + ' [aria-pressed=true]').dataset.v;
+  $('#fn').onsubmit = async e => {
+    e.preventDefault();
+    const tarea = { tarea: $('#f_tarea').value.trim(), problema: $('#f_prob').value.trim(), responsable: $('#f_resp').value, fecha: $('#f_fecha').value,
+      hora: $('#f_hora').value, prioridad: val('f_prio'), destino: $('#f_dest').value.trim(), aviso: $('#f_aviso').value, foto: val('f_foto'), comentarios: $('#f_com').value.trim() };
+    if (!tarea.tarea) return aviso('Escribe qué hay que hacer', 'error');
+    const r = await api('crear', { tarea });
+    if (!r.ok) return aviso(r.msg, 'error');
+    aviso(r.msg); pintar();
+  };
+}
+
+// ------------------------------------------------------------------ triaje de correos (responsables)
+async function triaje(id) {
+  const r = await api('correo', { id });
+  if (!r.ok || !r.correo) return aviso(r.msg || 'No encuentro ese correo', 'error');
+  const c = r.correo;
+  if (c.estado !== 'PENDIENTE') { aviso('Este correo ya está ' + c.estado.toLowerCase(), 'warning'); tab = 'correos'; return pintar(); }
+  let tipo = c.refs.some(x => x.tipo === 'RETIRAR') ? 'DESMONTAJE' : 'ALMACEN';
+  const nomTipo = { RETIRAR: 'retirar', 'AÑADIR': 'añadir', PEDIR: 'pedir', '?': 'sin clasificar' };
+  $('#saludo').textContent = c.grupo || 'Correo';
+  $('#sub').textContent = [c.descripcion, c.of ? 'OF ' + c.of : ''].filter(Boolean).join(', ');
+  $('#vista').innerHTML = `<div class="form">
+    <div class="enlaces"><button id="vc">📧 Ver correo completo</button></div>
+    <dl class="datos" style="margin-top:0"><dt>Solicita</dt><dd>${h(c.solicitante)}</dd><dt>Necesidad</dt><dd>${h(c.necesidad || '—')}</dd><dt>Fin montaje</dt><dd>${h(c.finMontaje || '—')}</dd>${c.documentacion ? `<dt>Planos</dt><dd>${h(c.documentacion)}</dd>` : ''}</dl>
+    <label class="c">Qué tarea crear</label>
+    <div class="seg" id="t_tipo"><button type="button" data-v="DESMONTAJE">Desmontaje Producción</button><button type="button" data-v="ALMACEN">Tarea de almacén</button><button type="button" data-v="NADA">Ninguna</button></div>
+    <div id="t_cuerpo"></div></div>`;
+  $('#vc').onclick = () => abrir(c.pdf);
+  const pintarTipo = () => {
+    $('#t_tipo').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === tipo));
+    const refs = `<label class="c">Piezas <small>${tipo === 'DESMONTAJE' ? 'marca las que se retiran' : 'marca las que afectan a la tarea'}</small></label><div class="refs">` +
+      (c.refs.length ? c.refs.map((x, i) => `<label class="pz"><input type="checkbox" data-i="${i}" ${x.tipo === 'RETIRAR' || (tipo !== 'DESMONTAJE' && x.tipo !== '?') ? 'checked' : ''}><span><span class="cod">${h(x.code)}</span><br><span class="tipo">${nomTipo[x.tipo] || x.tipo}</span></span><input type="number" min="1" value="${x.qty}" data-q="${i}"></label>`).join('')
+        : '<p style="color:var(--hint);margin:10px 0">No he encontrado referencias en el correo.</p>') + '</div>';
+    const comun = `<div class="dos"><div><label class="c" for="t_plazo">Plazo <small>días laborables</small></label><input class="in" type="number" min="1" id="t_plazo" value="${tipo === 'DESMONTAJE' ? 2 : 1}"></div>
+      <div><label class="c" for="t_prio">Prioridad</label><select class="in" id="t_prio"><option>NORMAL</option><option>ALTA</option><option>URGENTE</option></select></div></div>`;
+    let html = '';
+    if (tipo === 'DESMONTAJE') html = refs + `<label class="c">Qué se hace con lo retirado</label><div class="seg" id="t_dec"><button type="button" data-v="ALMACENAR">Almacenar</button><button type="button" data-v="TIRAR">Tirar</button><button type="button" data-v="POR CONFIRMAR" aria-pressed="true">Por confirmar</button></div>` + comun +
+      '<p style="color:var(--hint);font-size:14px">Le llega a YEPES y PAQUETE; el primero que la coja queda como responsable. Al entregar, se crea sola la tarea de almacén en la bolsa.</p>';
+    else if (tipo === 'ALMACEN') html = refs + `<label class="c" for="t_resp">Para quién</label><select class="in" id="t_resp">${personasOpts('BOLSA')}</select>
+      <label class="c" for="t_prob">Asunto</label><input class="in" id="t_prob" value="${h('Cambios · ' + (c.grupo || ''))}">
+      <label class="c" for="t_tar">Qué hay que hacer</label><textarea class="in" id="t_tar">Revisar cambios del correo en el kit</textarea>` + comun;
+    else html = '<p style="color:var(--hint)">El correo quedará como descartado.</p>';
+    $('#t_cuerpo').innerHTML = html + `<div style="margin-top:16px"><button class="btn pri" id="t_ok">${tipo === 'NADA' ? 'Descartar correo' : 'Crear tarea'}</button></div>`;
+    $('#t_cuerpo').querySelectorAll('.seg').forEach(s => s.querySelectorAll('button').forEach(b => b.onclick = () => s.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b))));
+    $('#t_ok').onclick = async () => {
+      const refsSel = [...document.querySelectorAll('[data-i]')].filter(x => x.checked).map(x => ({ code: c.refs[+x.dataset.i].code, qty: +document.querySelector('[data-q="' + x.dataset.i + '"]').value || 1 }));
+      const datos = { tipo, refs: refsSel };
+      if (tipo !== 'NADA') { datos.plazo = $('#t_plazo').value; datos.prioridad = $('#t_prio').value; }
+      if (tipo === 'DESMONTAJE') datos.decision = document.querySelector('#t_dec [aria-pressed=true]').dataset.v;
+      if (tipo === 'ALMACEN') Object.assign(datos, { responsable: $('#t_resp').value, problema: $('#t_prob').value, tarea: $('#t_tar').value + (refsSel.length ? ': ' + refsSel.map(x => x.qty + 'x ' + x.code).join(', ') : '') });
+      const r2 = await api('correoCrear', { id, datos });
+      if (!r2.ok) return aviso(r2.msg, 'error');
+      aviso(r2.msg); tab = 'correos'; history.replaceState(null, '', location.pathname); pintar();
+    };
+  };
+  $('#t_tipo').querySelectorAll('button').forEach(b => b.onclick = () => { tipo = b.dataset.v; pintarTipo(); });
+  pintarTipo();
+  window.scrollTo(0, 0);
+}
+
+// ------------------------------------------------------------------ arranque
+(async function () {
+  if (!tg || !tg.initData) {
+    $('#vista').innerHTML = '<div class="vacio"><b>Abre esta app desde Telegram</b>Entra en el bot del almacén y pulsa el botón «📋 Tareas».</div>';
+    $('#sub').textContent = ''; return;
+  }
+  if (typeof API_URL === 'undefined' || /PEGAR/.test(API_URL)) {
+    $('#vista').innerHTML = '<div class="vacio"><b>Falta configurar la app</b>Pega la dirección de Apps Script en config.js.</div>'; return;
+  }
+  const r = await api('inicio');
+  if (!r.ok) { $('#vista').innerHTML = `<div class="vacio"><b>No se puede abrir</b>${h(r.msg)}</div>`; $('#sub').textContent = ''; return; }
+  if (qs.get('correo') && D.yo.admin) { tab = 'correos'; pestanas(); return triaje(qs.get('correo')); }
+  if (qs.get('tab')) tab = qs.get('tab');
+  pintar();
+  setInterval(async () => { if (!$('#hoja').classList.contains('abierta') && !['nueva', 'correos'].includes(tab)) { await api('inicio', null, true); pintar(); } }, 90000);
+})();
+</script>
+</body>
+</html>

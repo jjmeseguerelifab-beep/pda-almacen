@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel · Almacén Elifab</title>
+<script src="config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#10262B;--panel:#17343A;--panel2:#1D3F46;--ink:#EAF4F2;--hint:#8FB0AB;--teal:#2FB59C;--red:#FF4D5E;--amber:#FFB547}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:'Barlow',system-ui,sans-serif;overflow:hidden}
+.top{display:flex;align-items:baseline;justify-content:space-between;padding:1.4vh 2vw 1vh}
+.top h1{margin:0;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:4.2vh}
+.top .hora{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:5vh;font-variant-numeric:tabular-nums}
+.top .fecha{color:var(--hint);font-size:2.2vh;margin-left:1vw}
+.grid{display:grid;grid-template-columns:1fr 24vw;gap:1.2vw;padding:0 2vw 2vh;height:calc(100vh - 9vh)}
+.ops{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:1vw;min-height:0}
+.col{background:var(--panel);border-radius:1.2vh;padding:1.4vh 1vw;display:flex;flex-direction:column;min-height:0}
+.col h2{margin:0 0 1vh;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:3.2vh;display:flex;justify-content:space-between;align-items:baseline}
+.col h2 span{font-size:2.4vh;color:var(--hint);font-weight:500}
+.lst{display:flex;flex-direction:column;gap:.9vh;overflow:hidden}
+.t{position:relative;background:var(--panel2);border-radius:.9vh;padding:1vh .8vw 1vh 1.3vw;font-size:2.15vh;line-height:1.25}
+.t::before{content:"";position:absolute;left:0;top:0;bottom:0;width:.45vw;border-radius:.9vh 0 0 .9vh;background:var(--teal)}
+.t.p-ALTA::before{background:var(--amber)}
+.t.p-URGENTE::before{background:repeating-linear-gradient(-45deg,var(--red) 0 .6vh,#3a0b12 .6vh 1.2vh)}
+.t b{display:block;font-weight:600}
+.t small{color:var(--hint);font-size:1.75vh}
+.t.tarde small.cuando{color:var(--red);font-weight:600}
+.t.inc{outline:.25vh solid var(--amber)}
+.mas{color:var(--hint);font-size:1.9vh;margin-top:.6vh}
+.lado{display:flex;flex-direction:column;gap:1.2vw;min-height:0}
+.lado .col{flex:1}
+.rk{display:grid;gap:.8vh}
+.rk div{display:grid;grid-template-columns:4vh 1fr auto;align-items:center;font-size:2.4vh}
+.rk i{font-style:normal;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:3.2vh;color:var(--teal)}
+.rk em{font-style:normal;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:3vh}
+.vacio{color:var(--hint);font-size:2.1vh}
+.err{position:fixed;bottom:1vh;right:2vw;color:var(--amber);font-size:1.8vh}
+</style>
+</head>
+<body>
+<div class="top"><div><h1 style="display:inline">Tareas del almacén</h1><span class="fecha" id="fecha"></span></div><div class="hora" id="hora"></div></div>
+<div class="grid"><div class="ops" id="ops"></div>
+  <div class="lado"><div class="col"><h2>Bolsa <span id="nb"></span></h2><div class="lst" id="bolsa"></div></div>
+    <div class="col"><h2>Producción <span id="np"></span></h2><div class="lst" id="prod"></div></div>
+    <div class="col" style="flex:none"><h2>Ranking semana</h2><div class="rk" id="rk"></div></div></div></div>
+<div class="err" id="err"></div>
+<script>
+const k = new URLSearchParams(location.search).get('k');
+const h = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+function cuando(t) {
+  if (!t.limite) return 'sin fecha';
+  const m = Math.round((t.limite - Date.now()) / 60000);
+  if (m < 0) return 'retraso ' + (-m < 60 ? -m + ' min' : -m < 1440 ? Math.round(-m / 60) + ' h' : Math.round(-m / 1440) + ' d');
+  if (m < 60) return 'quedan ' + m + ' min';
+  const d = new Date(t.compromiso + 'T12:00'), hoy = new Date(); hoy.setHours(12, 0, 0, 0);
+  const dias = Math.round((d - hoy) / 864e5);
+  return (dias === 0 ? 'hoy' : dias === 1 ? 'mañana' : DIAS[d.getDay()] + ' ' + t.compromiso.slice(8) + '/' + t.compromiso.slice(5, 7)) + (t.hora ? ' ' + t.hora : '');
+}
+function tareas(ts, max, quien) {
+  if (!ts.length) return '<div class="vacio">Nada pendiente</div>';
+  const vis = ts.slice(0, max);
+  return vis.map(t => `<div class="t p-${h(t.prioridad)} ${t.limite && t.limite < Date.now() ? 'tarde' : ''} ${t.estado === 'INCIDENCIA' ? 'inc' : ''}">
+    <b>${h(t.tarea.length > 70 ? t.tarea.slice(0, 67) + '…' : t.tarea)}</b>
+    <small class="cuando">${h(cuando(t))}</small>${t.estado === 'EN CURSO' ? ' <small>· en curso</small>' : ''}${t.estado === 'INCIDENCIA' ? ' <small>· incidencia</small>' : ''}${quien ? ' <small>· ' + h(t.responsable) + '</small>' : ''}</div>`).join('') +
+    (ts.length > max ? `<div class="mas">y ${ts.length - max} más</div>` : '');
+}
+function reloj() {
+  const d = new Date();
+  document.getElementById('hora').textContent = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('fecha').textContent = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+async function cargar() {
+  try {
+    const r = await (await fetch(API_URL, { method: 'POST', body: JSON.stringify({ accion: 'panel', k }) })).json();
+    if (!r.ok) throw new Error(r.msg);
+    const max = Math.max(3, Math.floor((window.innerHeight * 0.78) / (window.innerHeight * 0.085)));
+    document.getElementById('ops').innerHTML = r.operarios.map(o => `<div class="col"><h2>${h(o.nombre.split(' ')[0])} <span>${o.tareas.length}</span></h2><div class="lst">${tareas(o.tareas, max)}</div></div>`).join('');
+    document.getElementById('bolsa').innerHTML = tareas(r.bolsa, 3);
+    document.getElementById('prod').innerHTML = tareas(r.produccion, 3, true);
+    document.getElementById('nb').textContent = r.bolsa.length;
+    document.getElementById('np').textContent = r.produccion.length;
+    document.getElementById('rk').innerHTML = r.ranking.length ? r.ranking.map((x, i) => `<div><i>${i + 1}</i><span>${h(x.nombre.split(' ')[0])}</span><em>${x.puntos}</em></div>`).join('') : '<div class="vacio">Aún sin puntos esta semana</div>';
+    document.getElementById('err').textContent = '';
+  } catch (e) {
+    document.getElementById('err').textContent = 'Sin conexión: reintentando… (' + e.message + ')';
+  }
+}
+reloj(); setInterval(reloj, 15000);
+cargar(); setInterval(cargar, 60000);
+</script>
+</body>
+</html>
