@@ -130,6 +130,8 @@ textarea.in{min-height:84px;resize:vertical}
 .seg.prio button[aria-pressed=true][data-v=ALTA]{color:var(--amber)}
 .seg.top{background:var(--bg)}
 .seg.top button[aria-pressed=true]{background:var(--title);color:var(--bg);box-shadow:none}
+.seg.wrap{flex-wrap:wrap}
+.seg.wrap button{flex:1 1 30%;font-size:14px;padding:0 6px}
 .dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ayuda{color:var(--hint);font-size:13.5px;margin:8px 2px 0}
 
@@ -154,6 +156,33 @@ textarea.in{min-height:84px;resize:vertical}
 .pz .cod{font-weight:600}
 .pz .tipo{font-size:12.5px;color:var(--hint)}
 .pz input[type=number]{width:62px;min-height:40px;border:0;border-radius:10px;background:var(--bg2);text-align:center}
+
+/* ---------- plantillas ---------- */
+.plant{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 2px;scrollbar-width:none}
+.plant::-webkit-scrollbar{display:none}
+.plant button{flex:none;min-width:118px;max-width:150px;text-align:left;background:var(--bg);border-radius:14px;padding:11px 12px;border:1.5px solid transparent;font-weight:600;font-size:14.5px;line-height:1.2}
+.plant button small{display:block;font-weight:500;font-size:12px;color:var(--hint);margin-top:4px}
+.plant button[aria-pressed=true]{border-color:var(--orange);color:var(--orange)}
+
+/* ---------- cuadro de carga ---------- */
+.carga{background:var(--bg);border-radius:var(--r);margin-top:12px;overflow-x:auto}
+.carga table{border-collapse:collapse;width:100%;min-width:360px;font-size:13px}
+.carga th{font-weight:600;color:var(--hint);padding:10px 2px 6px;text-align:center;font-size:12px;line-height:1.15}
+.carga th:first-child{text-align:left;padding-left:12px}
+.carga td{padding:3px 2px;text-align:center}
+.carga td:first-child{text-align:left;padding-left:12px;font-weight:600;white-space:nowrap;max-width:96px;overflow:hidden;text-overflow:ellipsis}
+.carga tr + tr td{border-top:1px solid var(--line)}
+.celda{display:block;width:100%;min-width:42px;border-radius:9px;padding:6px 0;line-height:1.05}
+.celda b{display:block;font-size:14px}
+.celda span{font-size:11px;color:var(--hint)}
+.celda.c0{color:var(--hint)}
+.celda.c1{background:color-mix(in srgb,var(--teal) 14%,transparent)}
+.celda.c2{background:color-mix(in srgb,var(--amber) 18%,transparent)}
+.celda.c3{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
+.leyenda{display:flex;gap:12px;flex-wrap:wrap;color:var(--hint);font-size:12.5px;margin:10px 4px 0}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.chipx{display:inline-flex;align-items:center;gap:6px;background:var(--title);color:var(--bg);border-radius:99px;padding:6px 12px;font-weight:600;font-size:14px;margin:10px 4px 0 0}
+.enlacebox{background:var(--bg2);border-radius:12px;padding:12px;font-size:14px;word-break:break-all;margin:10px 0}
 
 /* ---------- avisos ---------- */
 .toast{position:fixed;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:40;background:var(--navy);color:#fff;border-radius:14px;padding:14px 16px;font-weight:600;font-size:15px;transform:translateY(16px);opacity:0;transition:all .2s;pointer-events:none;box-shadow:0 8px 24px rgba(0,20,50,.25)}
@@ -180,6 +209,7 @@ const $ = s => document.querySelector(s);
 const h = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const qs = new URLSearchParams(location.search);
 let botonTab = null;
+let eqVista = 'tareas', eqPersona = '', eqDia = '', plantSel = -1;
 let D = null, tab = 'mias', filtro = 'todas', rkModo = 'semana', abierta = null, pend = 0, fotoPend = null, mainFn = null, secFn = null;
 
 /* ---------- iconos ---------- */
@@ -345,15 +375,100 @@ function vistaRanking(v) {
   v.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { rkModo = b.dataset.m; hap('tap'); pintar(); });
 }
 
+function minTxt(m) { m = Math.round(m || 0); if (!m) return '—'; const hh = Math.floor(m / 60), mm = m % 60; return hh ? hh + 'h' + (mm ? String(mm).padStart(2, '0') : '') : mm + "'"; }
+const nombreCorto = n => cap(String(n || '').split(' ')[0]);
 function vistaEquipo(v) {
   const ts = D.equipo || [];
-  const f = { todas: () => true, tarde: t => t.limite && t.limite < Date.now(), inc: t => t.estado === 'INCIDENCIA', urg: t => t.prioridad === 'URGENTE', dec: t => t.flujo && t.decision === 'POR CONFIRMAR', bolsa: t => t.pool };
   titulo('Equipo', ts.length + ' tareas abiertas');
-  const fb = [['todas', 'Todas'], ['tarde', 'Con retraso'], ['inc', 'Incidencias'], ['urg', 'Urgentes'], ['dec', 'Falta decidir'], ['bolsa', 'Sin dueño']];
-  const lst = ts.filter(f[filtro]);
-  v.innerHTML = `<div class="filtros">${fb.map(([k, n]) => `<button data-f="${k}" aria-pressed="${filtro === k}">${n} <span class="num">${ts.filter(f[k]).length}</span></button>`).join('')}</div>` +
-    (lst.length ? `<div class="grupo" style="margin-top:12px">${lst.map(t => fila(t, true)).join('')}</div>` : vacio('Nada por aquí', 'No hay tareas con este filtro.'));
+  const cab = `<div class="seg top" id="eq_v" style="margin-top:12px">${[['tareas', 'Tareas'], ['carga', 'Carga'], ['personas', 'Personas']].map(([k, n]) => `<button type="button" data-v="${k}" aria-pressed="${eqVista === k}">${n}</button>`).join('')}</div>`;
+  let cuerpo = '';
+  if (eqVista === 'tareas') {
+    const f = { todas: () => true, tarde: t => t.limite && t.limite < Date.now(), inc: t => t.estado === 'INCIDENCIA', urg: t => t.prioridad === 'URGENTE', dec: t => t.flujo && t.decision === 'POR CONFIRMAR', bolsa: t => t.pool };
+    const fb = [['todas', 'Todas'], ['tarde', 'Con retraso'], ['inc', 'Incidencias'], ['urg', 'Urgentes'], ['dec', 'Falta decidir'], ['bolsa', 'Sin dueño']];
+    const deP = t => !eqPersona || (t.responsable || '').toUpperCase() === eqPersona;
+    const deD = t => !eqDia || (eqDia === 'tarde' ? t.limite && t.limite < Date.now() : t.compromiso === eqDia);
+    const quien = {}; ts.forEach(t => { const k = (t.responsable || '').toUpperCase(); quien[k] = (quien[k] || 0) + 1; });
+    const lst = ts.filter(f[filtro]).filter(deP).filter(deD);
+    cuerpo = `<div class="filtros">${fb.map(([k, n]) => `<button data-f="${k}" aria-pressed="${filtro === k}">${n} <span class="num">${ts.filter(deP).filter(f[k]).length}</span></button>`).join('')}</div>
+      <div class="filtros"><button data-p="" aria-pressed="${!eqPersona}">Todos</button>${Object.keys(quien).sort().map(k => `<button data-p="${h(k)}" aria-pressed="${eqPersona === k}">${h(POOLS.includes(k) ? cap(k) : nombreCorto(k))} <span class="num">${quien[k]}</span></button>`).join('')}</div>
+      ${eqDia ? `<span class="chipx" data-xd="1">${eqDia === 'tarde' ? 'Con retraso' : fechaTxt(eqDia)} ✕</span>` : ''}` +
+      (lst.length ? `<div class="grupo" style="margin-top:12px">${lst.map(t => fila(t, true)).join('')}</div>` : vacio('Nada por aquí', 'No hay tareas con este filtro.'));
+  } else if (eqVista === 'carga') cuerpo = cuadroCarga(ts);
+  else cuerpo = listaPersonas();
+  v.innerHTML = cab + cuerpo;
+  v.querySelectorAll('#eq_v button').forEach(b => b.onclick = () => { eqVista = b.dataset.v; hap('tap'); pintar(); });
   v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filtro = b.dataset.f; hap('tap'); pintar(); });
+  v.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { eqPersona = b.dataset.p; hap('tap'); pintar(); });
+  v.querySelectorAll('[data-xd]').forEach(b => b.onclick = () => { eqDia = ''; pintar(); });
+  v.querySelectorAll('[data-celda]').forEach(b => b.onclick = () => { const [p, d] = b.dataset.celda.split('|'); eqPersona = p; eqDia = d; filtro = 'todas'; eqVista = 'tareas'; hap('tap'); pintar(); window.scrollTo(0, 0); });
+  v.querySelectorAll('[data-usr]').forEach(b => b.onclick = () => { hap('tap'); fichaPersona(+b.dataset.usr); });
+  const alta = v.querySelector('#u_alta'); if (alta) alta.onclick = () => { hap('tap'); fichaPersona(0); };
+}
+
+function cuadroCarga(ts) {
+  const dias = (D.dias || []).slice(0, 5), jor = D.jornada || 480, ahora = Date.now();
+  const gente = (D.usuarios || []).filter(u => u.activo && u.rol !== 'ADMIN').map(u => u.nombre.toUpperCase());
+  const filas = ['BOLSA'].concat(gente);
+  ts.forEach(t => { const k = (t.responsable || '').toUpperCase(); if (k && !filas.includes(k) && !POOLS.includes(k)) filas.push(k); });
+  if (ts.some(t => ['PRODUCCIÓN', 'PRODUCCION'].includes((t.responsable || '').toUpperCase()))) filas.splice(1, 0, 'PRODUCCIÓN');
+  const celda = (p, d) => {
+    const lst = ts.filter(t => (t.responsable || '').toUpperCase() === p && (d === 'tarde' ? t.limite && t.limite < ahora : t.compromiso === d && !(t.limite && t.limite < ahora)));
+    const min = lst.reduce((a, t) => a + (t.duracion || D.duracionDef || 30), 0);
+    const pct = min / jor, cls = !lst.length ? 'c0' : d === 'tarde' ? 'c3' : pct > 0.85 ? 'c3' : pct > 0.5 ? 'c2' : 'c1';
+    return `<td><button class="celda ${cls}" data-celda="${h(p)}|${d}">${lst.length ? `<b class="num">${minTxt(min)}</b><span class="num">${lst.length} ${lst.length === 1 ? 'tarea' : 'tareas'}</span>` : '<b>·</b>'}</button></td>`;
+  };
+  return `<div class="carga"><table><thead><tr><th>Persona</th><th style="color:var(--red)">Tarde</th>${dias.map((d, i) => `<th>${i === 0 && d === hoyK() ? 'Hoy' : fechaTxt(d).replace(' ', '<br>')}</th>`).join('')}</tr></thead>
+    <tbody>${filas.map(p => `<tr><td>${h(POOLS.includes(p) ? cap(p) : nombreCorto(p))}</td>${celda(p, 'tarde')}${dias.map(d => celda(p, d)).join('')}</tr>`).join('')}</tbody></table></div>
+    <div class="leyenda"><span><i style="background:color-mix(in srgb,var(--teal) 30%,transparent)"></i>Holgado</span><span><i style="background:color-mix(in srgb,var(--amber) 35%,transparent)"></i>Más de media jornada</span><span><i style="background:color-mix(in srgb,var(--red) 30%,transparent)"></i>Lleno o con retraso</span></div>
+    <p class="ayuda">Tiempo estimado sobre una jornada de ${minTxt(jor)}. Toca una casilla para ver y reasignar sus tareas.</p>`;
+}
+
+const ROLES = [['OPERARIO', 'Almacén'], ['PRODUCCION', 'Producción'], ['ADMIN', 'Responsable']];
+const rolTxt = r => (ROLES.find(x => x[0] === r) || [r, cap(r)])[1];
+function listaPersonas() {
+  const us = (D.usuarios || []).slice().sort((a, b) => (b.activo - a.activo) || a.nombre.localeCompare(b.nombre));
+  return `<div class="acciones"><button class="btn pri" id="u_alta">Añadir persona</button></div>
+    <div class="grupo" style="margin-top:12px">${us.map(u => `<button class="fila${u.activo ? '' : ' cerrada'}" data-usr="${u.fila}"><span class="tit">${h(cap(u.nombre))}</span><span class="t"><span>${u.activo ? (u.vinculado ? 'Vinculado' : '<b style="font-size:13px;color:var(--orange)">Sin vincular</b>') : 'De baja'}</span></span><span class="meta">${h(rolTxt(u.rol))}</span></button>`).join('')}</div>`;
+}
+function fichaPersona(filaU) {
+  const u = filaU ? (D.usuarios || []).find(x => x.fila === filaU) : null;
+  abierta = { tipo: 'persona' };
+  const html = `<div class="cab"><div class="ref">${u ? h(rolTxt(u.rol)) : 'Alta nueva'}</div><h2>${u ? h(cap(u.nombre)) : 'Añadir persona'}</h2></div><div class="cuerpo"><div class="form">
+    ${u ? '' : '<label class="c" for="u_nom">Nombre y apellido</label><input class="in" id="u_nom" placeholder="Javier Toledo" autocomplete="off">'}
+    <label class="c">Puesto</label>${seg('u_rol', ROLES, u ? u.rol : 'OPERARIO')}
+    ${u ? `<label class="c">Estado</label>${seg('u_act', [['1', 'Activo'], ['0', 'De baja']], u.activo ? '1' : '0')}` : ''}
+    </div><div id="u_res"></div><div class="acciones">
+    ${usaBotonesTg() ? '' : `<button class="btn pri" id="u_ok">${u ? 'Guardar' : 'Dar de alta y crear enlace'}</button>`}
+    ${u ? `<button class="btn sec" id="u_inv">${u.vinculado ? 'Nuevo enlace (cambio de móvil)' : 'Enviar enlace de invitación'}</button>` : ''}</div>
+    <p class="ayuda">${u ? 'De baja: deja de recibir avisos y sale de las listas, pero conserva su historial.' : 'Se crea su ficha y un enlace. Al abrirlo y pulsar Iniciar en Telegram queda vinculado, sin más pasos.'}</p></div>`;
+  abrirPag(html);
+  activarSeg($('#pag'));
+  const mostrarEnlace = r => {
+    const txt = 'Hola ' + nombreCorto(r.nombre) + ', este es tu acceso a las tareas del almacén. Ábrelo y pulsa Iniciar: ';
+    $('#u_res').innerHTML = `<div class="form" style="margin-top:12px"><label class="c">Enlace para ${h(cap(r.nombre))}</label><div class="enlacebox">${h(r.enlace)}</div>
+      <div class="par"><button class="btn pri mini" id="u_tg">Enviar por Telegram</button><button class="btn sec mini" id="u_wa">WhatsApp</button></div>
+      <button class="btn sec mini" id="u_cp" style="margin-top:8px">Copiar enlace</button><p class="ayuda">Caduca en 14 días y solo sirve una vez.</p></div>`;
+    $('#u_tg').onclick = () => { const u2 = 'https://t.me/share/url?url=' + encodeURIComponent(r.enlace) + '&text=' + encodeURIComponent(txt); if (tg && tg.openTelegramLink) tg.openTelegramLink(u2); else abrirEnlace(u2); };
+    $('#u_wa').onclick = () => abrirEnlace('https://wa.me/?text=' + encodeURIComponent(txt + r.enlace));
+    $('#u_cp').onclick = async () => { try { await navigator.clipboard.writeText(r.enlace); aviso('Enlace copiado'); } catch (e) { aviso('Mantén pulsado el enlace para copiarlo', true); } };
+  };
+  const guardar = async () => {
+    const datos = u ? { op: 'editar', fila: u.fila, rol: segVal('u_rol'), activo: segVal('u_act') === '1' } : { op: 'crear', nombre: $('#u_nom').value.trim(), rol: segVal('u_rol') };
+    if (!u && datos.nombre.length < 3) { $('#u_nom').focus(); return aviso('Escribe el nombre y el apellido', true); }
+    if (tg && tg.MainButton) tg.MainButton.showProgress();
+    const r = await api('usuario', datos);
+    if (tg && tg.MainButton) tg.MainButton.hideProgress();
+    if (!r.ok) return aviso(r.msg, true);
+    aviso(r.msg);
+    if (r.enlace) { mostrarEnlace(r); botonPrincipal(''); if ($('#u_ok')) $('#u_ok').hidden = true; } else cerrarPag();
+  };
+  if ($('#u_ok')) $('#u_ok').onclick = guardar;
+  if ($('#u_inv')) $('#u_inv').onclick = async () => {
+    const r = await api('usuario', { op: 'invitar', fila: u.fila, desvincular: u.vinculado });
+    if (!r.ok) return aviso(r.msg, true);
+    mostrarEnlace(r);
+  };
+  if (usaBotonesTg()) botonPrincipal(u ? 'Guardar' : 'Dar de alta y crear enlace', guardar);
 }
 
 function vistaCorreos(v) {
@@ -407,6 +522,7 @@ function detalle(uid, refresco) {
     t.solicitante ? ['Solicita', t.solicitante] : null,
     t.comentarios ? ['Nota', t.comentarios.replace(/https?:\/\/\S+/g, '').trim()] : null,
     t.foto ? ['Foto', t.foto === 'OBLIGATORIA' ? 'Obligatoria al cerrar' : 'Opcional'] : null,
+    t.duracion ? ['Tiempo estimado', minTxt(t.duracion)] : null,
     t.creadoPor ? ['Creada por', cap(t.creadoPor)] : null].filter(x => x && x[1]);
   const enl = [];
   if (t.destino) enl.push(['Cómo llegar', t.destino]);
@@ -544,29 +660,76 @@ function seg(id, ops, val, cls) { return `<div class="seg ${cls || ''}" id="${id
 function activarSeg(raiz, al) { raiz.querySelectorAll('.seg').forEach(s => s.querySelectorAll('button').forEach(b => b.onclick = () => { s.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b)); hap('tap'); if (al) al(s.id, b.dataset.v); })); }
 const segVal = id => document.querySelector('#' + id + ' [aria-pressed=true]').dataset.v;
 function vistaNueva(v) {
-  const hoy = hoyK();
-  v.innerHTML = `<form class="form" id="fn" style="margin-top:12px">
+  const hoy = hoyK(), P = D.plantillas || [], dest = D.destinos || [];
+  const durDef = D.duracionDef || 30;
+  v.innerHTML = `${P.length ? `<div class="plant" id="plant"><button type="button" data-pl="-1" aria-pressed="${plantSel < 0}">En blanco<small>Tarea libre</small></button>${P.map((p, i) => `<button type="button" data-pl="${i}" aria-pressed="${plantSel === i}">${h(p.nombre)}<small>${minTxt(p.duracion || durDef)} · ${h(p.responsable === 'BOLSA' ? 'Bolsa' : cap(p.responsable))}</small></button>`).join('')}</div>` : ''}
+    <form class="form" id="fn" style="margin-top:12px">
+    <div id="f_extra"></div>
     <label class="c" for="f_tarea">Qué hay que hacer</label><textarea class="in" id="f_tarea" placeholder="Recoger 4 vigas IPE en Hierros Martínez"></textarea>
     <label class="c" for="f_resp">Para quién</label><select class="in" id="f_resp">${personasOpts('BOLSA')}</select>
     <div class="dos"><div><label class="c" for="f_fecha">Vence</label><input class="in" type="date" id="f_fecha" value="${hoy}" min="${hoy}"></div>
       <div><label class="c" for="f_hora">Hora límite</label><input class="in" type="time" id="f_hora"></div></div>
     <label class="c">Prioridad</label>${seg('f_prio', [['NORMAL', 'Normal'], ['ALTA', 'Alta'], ['URGENTE', 'Urgente']], 'NORMAL', 'prio')}
     <label class="c">Foto al cerrar</label>${seg('f_foto', [['', 'No'], ['OPCIONAL', 'Opcional'], ['OBLIGATORIA', 'Obligatoria']], '')}
-    <label class="c" for="f_dest">Destino (enlace de Google Maps)</label><input class="in" id="f_dest" inputmode="url" placeholder="Solo si hay que ir a algún sitio">
+    <div class="dos"><div><label class="c" for="f_dur">Tiempo estimado (min)</label><input class="in num" type="number" id="f_dur" min="5" step="5" value="${durDef}"></div>
+      <div><label class="c" for="f_aviso">Avisar antes (min)</label><input class="in num" type="number" id="f_aviso" min="5" step="5" value="${D.avisoDef || 30}"></div></div>
+    <div id="f_destbox"><label class="c" for="f_dest">Destino (enlace de Google Maps)</label><input class="in" id="f_dest" inputmode="url" placeholder="Solo si hay que ir a algún sitio"></div>
     <label class="c" for="f_com">Nota</label><input class="in" id="f_com" placeholder="Opcional">
-    <div class="dos"><div><label class="c" for="f_aviso">Avisar antes (min)</label><input class="in num" type="number" id="f_aviso" min="5" step="5" value="${D.avisoDef || 30}"></div><div><label class="c" for="f_prob">Asunto</label><input class="in" id="f_prob" placeholder="Opcional"></div></div>
+    <label class="c" for="f_prob">Asunto</label><input class="in" id="f_prob" placeholder="Opcional">
     ${usaBotonesTg() ? '' : '<div style="margin-top:18px"><button class="btn pri" type="submit">Crear tarea</button></div>'}</form>
     ${(D.creadas || []).length ? grupo('Las que has pedido', D.creadas, true) : ''}`;
   activarSeg(v);
+  let manual = false;
+  const pl = () => (plantSel >= 0 ? P[plantSel] : null);
+  const setSeg = (id, val) => document.querySelectorAll('#' + id + ' button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === (val || '')));
+  const componer = () => {
+    const p = pl(); if (!p || manual) return;
+    const ex = id => ($('#' + id) ? $('#' + id).value.trim() : '');
+    let d = ex('x_dest'); d = d === '__otro' ? '' : d;
+    const destNom = d ? (dest[+d] || {}).nombre || '' : '';
+    let t = p.tarea.replace(/\{DESTINO\}/g, destNom).replace(/\{OF\}/g, ex('x_of')).replace(/\{DETALLE\}/g, ex('x_det'));
+    if (ex('x_det') && !/\{DETALLE\}/.test(p.tarea)) t += ': ' + ex('x_det');
+    $('#f_tarea').value = t.replace(/\s+(en|de|OF)\s*$/i, '').replace(/\s{2,}/g, ' ').trim();
+  };
+  const aplicar = () => {
+    const p = pl(); manual = false;
+    const ex = $('#f_extra');
+    $('#f_dest').value = '';
+    if (!p) { ex.innerHTML = ''; $('#f_destbox').hidden = false; return; }
+    const pide = p.pide || [];
+    ex.innerHTML = (pide.includes('DESTINO') ? `<label class="c" for="x_dest">Dónde</label><select class="in" id="x_dest"><option value="">Elige proveedor o sitio</option>${dest.map((d, i) => `<option value="${i}">${h(d.nombre)}</option>`).join('')}<option value="__otro">Otro sitio (pegar enlace de Maps)</option></select>` : '') +
+      (pide.includes('OF') ? `<label class="c" for="x_of">Nº de OF</label><input class="in num" id="x_of" inputmode="numeric" placeholder="1126">` : '') +
+      (pide.includes('DETALLE') ? `<label class="c" for="x_det">${pide.includes('OF') ? 'Grupo o kit' : p.nombre.startsWith('Reponer') ? 'Qué y dónde' : p.nombre.startsWith('Descargar') ? 'Proveedor o transportista' : 'Qué recoger'}</label><input class="in" id="x_det" autocomplete="off">` : '');
+    $('#f_destbox').hidden = pide.includes('DESTINO');
+    $('#f_resp').value = p.responsable === 'PRODUCCION' ? 'PRODUCCIÓN' : p.responsable;
+    $('#f_fecha').value = (D.dias || [])[p.plazo] || hoy;
+    setSeg('f_prio', p.prioridad || 'NORMAL'); setSeg('f_foto', p.foto || '');
+    $('#f_dur').value = p.duracion || durDef;
+    $('#f_aviso').value = p.aviso || D.avisoDef || 30;
+    $('#f_prob').value = p.problema || '';
+    if (!pide.includes('HORA')) $('#f_hora').value = '';
+    ex.querySelectorAll('input,select').forEach(x => x.oninput = x.onchange = () => {
+      if (x.id === 'x_dest') { const otro = x.value === '__otro'; $('#f_destbox').hidden = !otro; $('#f_dest').value = otro || !x.value ? '' : (dest[+x.value] || {}).url || ''; }
+      componer();
+    });
+    componer();
+    const primero = ex.querySelector('input,select'); if (primero) setTimeout(() => primero.focus(), 50);
+  };
+  $('#f_tarea').oninput = () => { manual = true; };
+  v.querySelectorAll('[data-pl]').forEach(b => b.onclick = () => { plantSel = +b.dataset.pl; v.querySelectorAll('[data-pl]').forEach(x => x.setAttribute('aria-pressed', x === b)); hap('tap'); aplicar(); });
+  aplicar();
   const crear = async () => {
+    const p = pl();
+    if (p && (p.pide || []).includes('OF') && !$('#x_of').value.trim()) { $('#x_of').focus(); return aviso('Indica el número de OF', true); }
     const tarea = { tarea: $('#f_tarea').value.trim(), problema: $('#f_prob').value.trim(), responsable: $('#f_resp').value, fecha: $('#f_fecha').value,
-      hora: $('#f_hora').value, prioridad: segVal('f_prio'), destino: $('#f_dest').value.trim(), aviso: $('#f_aviso').value, foto: segVal('f_foto'), comentarios: $('#f_com').value.trim() };
+      hora: $('#f_hora').value, prioridad: segVal('f_prio'), destino: $('#f_dest').value.trim(), aviso: $('#f_aviso').value, foto: segVal('f_foto'),
+      duracion: $('#f_dur').value, of: $('#x_of') ? $('#x_of').value.trim() : '', comentarios: $('#f_com').value.trim() };
     if (!tarea.tarea) { $('#f_tarea').focus(); return aviso('Escribe qué hay que hacer', true); }
     if (tg && tg.MainButton) tg.MainButton.showProgress();
     const r = await api('crear', { tarea });
     if (tg && tg.MainButton) tg.MainButton.hideProgress();
     if (!r.ok) return aviso(r.msg, true);
-    aviso(r.msg); $('#fn').reset();
+    aviso(r.msg); $('#fn').reset(); plantSel = -1; pintar();
   };
   $('#fn').onsubmit = e => { e.preventDefault(); crear(); };
   if (usaBotonesTg()) { botonTab = () => botonPrincipal('Crear tarea', crear); if (!abierta) botonTab(); }
@@ -589,9 +752,9 @@ async function triaje(id) {
     let cuerpo = '';
     if (tipo !== 'NADA') cuerpo = `<div class="form"><label class="c">Piezas</label>${piezas}</div><div class="form">` +
       (tipo === 'DESMONTAJE' ? `<label class="c" for="t_resp">Quién desmonta</label><select class="in" id="t_resp">${prod.map(([v, n]) => `<option value="${h(v)}">${h(n)}</option>`).join('')}</select>` : '') +
-      (tipo === 'ALMACENAJE' ? `<label class="c" for="t_resp">Para quién</label><select class="in" id="t_resp">${personasOpts('BOLSA')}</select>` : '') +
+      (tipo === 'ALMACENAJE' || tipo === 'PREPARACION OF' ? `<label class="c" for="t_resp">Para quién</label><select class="in" id="t_resp">${personasOpts('BOLSA')}</select>` : '') +
       (tipo === 'ALMACEN' ? `<label class="c" for="t_resp">Para quién</label><select class="in" id="t_resp">${personasOpts('BOLSA')}</select><label class="c" for="t_tar">Qué hay que hacer</label><textarea class="in" id="t_tar">Revisar cambios del correo</textarea>` : '') +
-      (tipo !== 'ALMACEN' ? `<label class="c">${tipo === 'DESMONTAJE' ? 'Después de entregar, el material' : 'El material'}</label>${seg('t_dec', [['POR CONFIRMAR', 'Por decidir'], ['ALMACENAR', 'Se almacena'], ['TIRAR', 'Se tira']], 'POR CONFIRMAR')}` : '') +
+      (tipo !== 'ALMACEN' && tipo !== 'PREPARACION OF' ? `<label class="c">${tipo === 'DESMONTAJE' ? 'Después de entregar, el material' : 'El material'}</label>${seg('t_dec', [['POR CONFIRMAR', 'Por decidir'], ['ALMACENAR', 'Se almacena'], ['TIRAR', 'Se tira']], 'POR CONFIRMAR')}` : '') +
       `<div class="dos"><div><label class="c" for="t_plazo">Plazo (días lab.)</label><input class="in num" type="number" min="1" id="t_plazo" value="${tipo === 'DESMONTAJE' ? 2 : 1}"></div><div><label class="c" for="t_prio">Prioridad</label><select class="in" id="t_prio"><option value="NORMAL">Normal</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></div></div>` +
       `<label class="c">Foto al cerrar</label>${seg('t_foto', [['OBLIGATORIA', 'Sí'], ['', 'No']], 'OBLIGATORIA')}</div>`;
     $('#tcuerpo').innerHTML = cuerpo + (usaBotonesTg() ? '' : `<div class="acciones"><button class="btn pri" id="t_ok">${tipo === 'NADA' ? 'Descartar correo' : 'Crear tarea'}</button></div>`);
@@ -600,9 +763,9 @@ async function triaje(id) {
       const refsSel = [...document.querySelectorAll('#tcuerpo [data-i]')].filter(x => x.checked).map(x => ({ code: c.refs[+x.dataset.i].code, qty: +document.querySelector('#tcuerpo [data-q="' + x.dataset.i + '"]').value || 1 }));
       const datos = { tipo, refs: refsSel };
       if (tipo !== 'NADA') Object.assign(datos, { plazo: $('#t_plazo').value, prioridad: $('#t_prio').value, foto: segVal('t_foto'), responsable: $('#t_resp').value });
-      if (tipo !== 'ALMACEN' && tipo !== 'NADA') datos.decision = segVal('t_dec');
+      if (tipo === 'DESMONTAJE' || tipo === 'ALMACENAJE') datos.decision = segVal('t_dec');
       if (tipo === 'ALMACEN') Object.assign(datos, { problema: 'Cambios · ' + (c.grupo || ''), tarea: $('#t_tar').value + (refsSel.length ? ': ' + refsSel.map(x => x.qty + 'x ' + x.code).join(', ') : '') });
-      if (tipo !== 'NADA' && tipo !== 'ALMACEN' && !refsSel.length) return aviso('Marca al menos una pieza', true);
+      if ((tipo === 'DESMONTAJE' || tipo === 'ALMACENAJE') && !refsSel.length) return aviso('Marca al menos una pieza', true);
       if (tg && tg.MainButton) tg.MainButton.showProgress();
       const r2 = await api('correoCrear', { id, datos });
       if (tg && tg.MainButton) tg.MainButton.hideProgress();
@@ -615,7 +778,7 @@ async function triaje(id) {
   const html = `<div class="cab"><div class="ref">${h([c.solicitante, c.of ? 'OF ' + c.of : ''].filter(Boolean).join(' · '))}</div><h2>${h(c.grupo || c.asunto)}</h2>${c.descripcion ? `<p class="ayuda" style="margin:6px 0 0">${h(c.descripcion)}</p>` : ''}</div>
     <div class="cuerpo"><div class="datos"><button class="enlace" id="vc">Ver el correo completo${I.chev}</button></div>
     ${c.necesidad || c.finMontaje ? `<dl class="datos"><div class="dato"><dt>Necesidad</dt><dd>${h(c.necesidad || '—')}</dd></div><div class="dato"><dt>Fin montaje</dt><dd>${h(c.finMontaje || '—')}</dd></div></dl>` : ''}
-    <div class="sect">Qué tarea crear</div>${seg('t_tipo', [['DESMONTAJE', 'Desmontaje'], ['ALMACENAJE', 'Almacenaje'], ['ALMACEN', 'Otra'], ['NADA', 'Ninguna']], tipo, 'top')}
+    <div class="sect">Qué tarea crear</div>${seg('t_tipo', [['DESMONTAJE', 'Desmontaje'], ['ALMACENAJE', 'Almacenaje'], ['PREPARACION OF', 'Prep. OF'], ['ALMACEN', 'Otra'], ['NADA', 'Ninguna']], tipo, 'top wrap')}
     <div id="tcuerpo" style="display:grid;gap:12px;margin-top:12px"></div></div>`;
   $('#pag').innerHTML = (tg ? '' : `<button class="atras" id="atras">${I.atras}Volver</button>`) + html;
   if (!tg) $('#atras').onclick = cerrarPag;
