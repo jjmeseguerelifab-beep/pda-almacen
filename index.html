@@ -755,6 +755,7 @@ async function triaje(id) {
       (tipo === 'ALMACENAJE' || tipo === 'PREPARACION OF' ? `<label class="c" for="t_resp">Para quién</label><select class="in" id="t_resp">${personasOpts('BOLSA')}</select>` : '') +
       (tipo === 'ALMACEN' ? `<label class="c" for="t_resp">Para quién</label><select class="in" id="t_resp">${personasOpts('BOLSA')}</select><label class="c" for="t_tar">Qué hay que hacer</label><textarea class="in" id="t_tar">Revisar cambios del correo</textarea>` : '') +
       (tipo !== 'ALMACEN' && tipo !== 'PREPARACION OF' ? `<label class="c">${tipo === 'DESMONTAJE' ? 'Después de entregar, el material' : 'El material'}</label>${seg('t_dec', [['POR CONFIRMAR', 'Por decidir'], ['ALMACENAR', 'Se almacena'], ['TIRAR', 'Se tira']], 'POR CONFIRMAR')}` : '') +
+      (tipo === 'DESMONTAJE' ? `<label class="c" for="t_alm">Y lo hace</label><select class="in" id="t_alm"><option value="BOLSA">Equipo de almacén (el primero que la coja)</option>${(D.personas || []).filter(p => p.rol !== 'PRODUCCION').map(p => `<option value="${h(p.nombre)}">${h(cap(p.nombre))}</option>`).join('')}</select>` : '') +
       `<div class="dos"><div><label class="c" for="t_plazo">Plazo (días lab.)</label><input class="in num" type="number" min="1" id="t_plazo" value="${tipo === 'DESMONTAJE' ? 2 : 1}"></div><div><label class="c" for="t_prio">Prioridad</label><select class="in" id="t_prio"><option value="NORMAL">Normal</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></div></div>` +
       `<label class="c">Foto al cerrar</label>${seg('t_foto', [['OBLIGATORIA', 'Sí'], ['', 'No']], 'OBLIGATORIA')}</div>`;
     $('#tcuerpo').innerHTML = cuerpo + (usaBotonesTg() ? '' : `<div class="acciones"><button class="btn pri" id="t_ok">${tipo === 'NADA' ? 'Descartar correo' : 'Crear tarea'}</button></div>`);
@@ -764,6 +765,7 @@ async function triaje(id) {
       const datos = { tipo, refs: refsSel };
       if (tipo !== 'NADA') Object.assign(datos, { plazo: $('#t_plazo').value, prioridad: $('#t_prio').value, foto: segVal('t_foto'), responsable: $('#t_resp').value });
       if (tipo === 'DESMONTAJE' || tipo === 'ALMACENAJE') datos.decision = segVal('t_dec');
+      if (tipo === 'DESMONTAJE') datos.almacena = $('#t_alm').value;
       if (tipo === 'ALMACEN') Object.assign(datos, { problema: 'Cambios · ' + (c.grupo || ''), tarea: $('#t_tar').value + (refsSel.length ? ': ' + refsSel.map(x => x.qty + 'x ' + x.code).join(', ') : '') });
       if ((tipo === 'DESMONTAJE' || tipo === 'ALMACENAJE') && !refsSel.length) return aviso('Marca al menos una pieza', true);
       if (tg && tg.MainButton) tg.MainButton.showProgress();
