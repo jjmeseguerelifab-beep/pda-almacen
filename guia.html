@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#002A5C">
+<title>Guía rápida · Tareas del almacén</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#002A5C;--orange:#E95521;--teal:#1E9C8C;--red:#D92D20;--amber:#B26A00;--bg:#fff;--bg2:#F1F3F6;--ink:#0B1B33;--hint:#677572;--line:rgba(11,27,51,.09)}
+@media (prefers-color-scheme:dark){:root{--navy:#8FB4E6;--bg:#1b2533;--bg2:#121a24;--ink:#EEF2F6;--hint:#93A1AE;--line:rgba(238,242,246,.12)}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg2);color:var(--ink);font:16px/1.5 'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+.top{background:#002A5C;color:#fff;padding:28px 20px 26px}
+.top small{display:block;opacity:.75;font-weight:600;font-size:14px}
+.top h1{margin:4px 0 6px;font-size:30px;line-height:1.1;font-weight:700;letter-spacing:-.4px}
+.top p{margin:0;opacity:.85;max-width:34em}
+main{max-width:680px;margin:0 auto;padding:6px 14px 40px}
+h2{font-size:21px;line-height:1.2;color:var(--navy);margin:28px 6px 10px}
+.card{background:var(--bg);border-radius:16px;padding:16px 18px}
+.card p{margin:0 0 10px}.card p:last-child{margin:0}
+ol,ul{margin:0;padding-left:22px}li{margin:6px 0}
+.filas{background:var(--bg);border-radius:16px;overflow:hidden}
+.f{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:12px 16px;position:relative}
+.f+.f::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:1px solid var(--line)}
+.f b{font-weight:700}
+.f span{color:var(--hint)}
+@media (max-width:420px){.f{grid-template-columns:1fr;gap:2px}}
+.nota{color:var(--hint);font-size:14.5px;margin:10px 6px 0}
+.pill{display:inline-block;font-weight:700;font-size:13.5px;padding:2px 10px;border-radius:99px;background:var(--bg2)}
+.pill.o{background:var(--orange);color:#fff}
+.faq b{display:block;margin-top:12px}.faq b:first-child{margin-top:0}
+footer{color:var(--hint);font-size:13.5px;text-align:center;margin-top:30px}
+</style>
+</head>
+<body>
+<header class="top">
+  <small>Almacén Elifab</small>
+  <h1>Guía rápida de tareas</h1>
+  <p>Todo lo que necesitas para recibir, hacer y cerrar tus tareas desde el móvil. Se lee en 3 minutos.</p>
+</header>
+<main>
+
+<h2>1. Cómo funciona</h2>
+<div class="card">
+  <p>Las tareas del almacén te llegan al móvil por <b>Telegram</b>, en el chat <b>@ElifabAlmacenBot</b>. Si una tarea es para ti, te llega un aviso con lo que hay que hacer, para cuándo y la prioridad.</p>
+  <p>No hay que escribir nada: pulsas un botón y queda apuntado al momento para todo el equipo.</p>
+</div>
+
+<h2>2. Cuando te llega una tarea</h2>
+<div class="filas">
+  <div class="f"><b>▶️ En curso</b><span>Cuando empiezas a hacerla.</span></div>
+  <div class="f"><b>✅ Completada</b><span>Cuando la terminas.</span></div>
+  <div class="f"><b>⚠️ Incidencia</b><span>Si algo te impide hacerla: falta material, máquina averiada… Eliges el motivo y Joaquín y Óscar lo saben al instante.</span></div>
+  <div class="f"><b>📍 Cómo llegar</b><span>Si hay que ir a algún sitio: abre Google Maps con la ruta.</span></div>
+  <div class="f"><b>📧 Ver correo</b><span>Si la tarea viene de un correo de Ingeniería: lo abre en PDF.</span></div>
+</div>
+<p class="nota">En las tareas de material el botón final se llama <b>Entregado en almacén</b>, <b>Almacenado</b> o <b>Tirado</b>. Prioridad: 🟢 normal · 🟠 alta · 🔴 urgente (primero las urgentes).</p>
+
+<h2>3. La bolsa y los puntos</h2>
+<div class="card">
+  <p>La <b>bolsa</b> son tareas sin dueño: le llegan a todo el equipo a la vez y <b>el primero que pulsa 🙋 La cojo yo se la queda</b>. Si nadie la coge, vuelve a avisarse a todos a las 7:00 del día siguiente.</p>
+</div>
+<div class="filas" style="margin-top:10px">
+  <div class="f"><b>Tarea completada</b><span>1 punto</span></div>
+  <div class="f"><b>Dentro de plazo</b><span>+1 punto</span></div>
+  <div class="f"><b>Cogida de la bolsa</b><span>+1 punto</span></div>
+</div>
+<p class="nota">El ranking se ve en la app y llega cada lunes. Escribe <b>/ranking</b> en el chat para verlo cuando quieras.</p>
+
+<h2>4. La app de tareas</h2>
+<div class="card">
+  <p>En el chat del bot, el botón <span class="pill">📋 Tareas</span> (abajo a la izquierda) abre la app con todas tus tareas ordenadas.</p>
+</div>
+<div class="filas" style="margin-top:10px">
+  <div class="f"><b>Mis tareas</b><span>Primero las que van con retraso, luego las de hoy y las próximas. A la derecha, el tiempo que queda.</span></div>
+  <div class="f"><b>Bolsa</b><span>Tareas libres. Pulsa <span class="pill o">Cogerla</span> y pasa a ser tuya.</span></div>
+  <div class="f"><b>Nueva</b><span>Crear una tarea para ti, un compañero o la bolsa. Hay plantillas de un toque: recoger material, preparar OF, reponer consumibles, descargar.</span></div>
+  <div class="f"><b>Ranking</b><span>Puntos de la semana y del mes.</span></div>
+</div>
+<p class="nota">Toca una tarea para ver el detalle. El botón naranja de abajo es la acción principal; encima tienes Empezar, Tengo una incidencia y Añadir foto. El punto de arriba a la derecha: verde guardado, naranja guardando, rojo sin conexión.</p>
+
+<h2>5. Fotos</h2>
+<div class="card">
+  <ul>
+    <li><b>Foto obligatoria:</b> al cerrar la tarea se abre la cámara. Sin foto no se cierra.</li>
+    <li><b>Foto opcional:</b> te pregunta si quieres añadirla; puedes cerrar sin foto.</li>
+    <li>Por el chat también vale: cuando el bot te la pida, envíala como una foto normal.</li>
+  </ul>
+</div>
+
+<h2>6. Horario de avisos</h2>
+<div class="card">
+  <p>El bot solo avisa <b>de lunes a viernes, de 7:00 a 15:30</b>. Lo que se cree fuera de ese horario te llega a las 7:00 del siguiente día laborable.</p>
+</div>
+<div class="filas" style="margin-top:10px">
+  <div class="f"><b>7:00</b><span>Resumen con tus tareas de hoy y próximas.</span></div>
+  <div class="f"><b>Día antes</b><span>Recordatorio de lo que vence mañana.</span></div>
+  <div class="f"><b>Antes de la hora</b><span>Aviso unos minutos antes de la hora límite.</span></div>
+  <div class="f"><b>Urgente sin empezar</b><span>Recordatorio a los 15 minutos.</span></div>
+  <div class="f"><b>Cambios</b><span>Si te cambian fecha, prioridad o responsable: «✏️ Tarea actualizada».</span></div>
+</div>
+
+<h2>7. Preguntas frecuentes</h2>
+<div class="card faq">
+  <b>He pulsado un botón por error.</b> Avisa a Joaquín u Óscar: pueden reabrirla o reasignarla.
+  <b>Una tarea no es mía.</b> No la cierres: pulsa Incidencia o avisa para que la reasignen.
+  <b>Quiero ver todas mis tareas.</b> Botón 📋 Tareas, o escribe /mis_tareas en el chat.
+  <b>La app no se actualiza.</b> Ciérrala del todo y vuelve a abrirla. Si el punto está en rojo, revisa la cobertura o el wifi.
+  <b>Cambio de móvil.</b> Avisa a Joaquín: te manda un enlace nuevo.
+  <b>Otra duda.</b> Pregunta a Joaquín u Óscar. En el chat, /guia te vuelve a traer esta guía.
+</div>
+
+<footer>Almacén Elifab · Tareas por Telegram</footer>
+</main>
+</body>
+</html>

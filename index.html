@@ -39,7 +39,10 @@ button{cursor:pointer;border:0;background:none;padding:0}
 .top{padding:18px 20px 6px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
 .top h1{margin:0;font-size:30px;line-height:1.05;font-weight:700;color:var(--title);letter-spacing:-.4px}
 .top p{margin:6px 0 0;color:var(--hint);font-size:15px}
-.sync{flex:none;width:9px;height:9px;border-radius:50%;background:var(--teal);margin-bottom:8px;transition:background .2s}
+.cabd{display:flex;align-items:center;gap:12px;margin-bottom:2px}
+.guia{width:30px;height:30px;color:var(--hint)}
+.guia svg{width:26px;height:26px}
+.sync{flex:none;width:9px;height:9px;border-radius:50%;background:var(--teal);transition:background .2s}
 .sync.on{background:var(--orange);animation:lat 1s ease-in-out infinite}
 .sync.off{background:var(--red)}
 @keyframes lat{50%{opacity:.35}}
@@ -195,7 +198,7 @@ html[data-tema=dark] .toast{background:#1d3557}
 </style>
 </head>
 <body>
-<header class="top"><div><h1 id="saludo">Almacén</h1><p id="sub">Cargando tus tareas</p></div><span class="sync" id="sync" title="Sincronización"></span></header>
+<header class="top"><div><h1 id="saludo">Almacén</h1><p id="sub">Cargando tus tareas</p></div><span class="cabd"><button class="guia" id="guia" aria-label="Guía de uso"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4"/><path d="M12 16.8v.2"/></svg></button><span class="sync" id="sync" title="Sincronización"></span></span></header>
 <main id="vista"><div class="esq"><i></i><i></i><i></i></div><div class="esq"><i></i><i></i><i></i></div></main>
 <nav class="tabbar" id="tabs" role="tablist" hidden></nav>
 <section class="pag" id="pag" role="dialog" aria-modal="true"></section>
@@ -444,12 +447,12 @@ function fichaPersona(filaU) {
   abrirPag(html);
   activarSeg($('#pag'));
   const mostrarEnlace = r => {
-    const txt = 'Hola ' + nombreCorto(r.nombre) + ', este es tu acceso a las tareas del almacén. Ábrelo y pulsa Iniciar: ';
+    const txt = 'Hola ' + nombreCorto(r.nombre) + ' 👋\n\nEn el almacén organizamos las tareas por Telegram. Para entrar:\n\n1️⃣ Instala Telegram (gratis) desde Play Store o App Store, si aún no lo tienes.\n2️⃣ Pulsa este enlace: ' + r.enlace + '\n3️⃣ Se abre el chat del almacén: pulsa INICIAR.\n\nYa está. Te llegará la bienvenida con una guía de 3 minutos. Cualquier duda, me dices.';
     $('#u_res').innerHTML = `<div class="form" style="margin-top:12px"><label class="c">Enlace para ${h(cap(r.nombre))}</label><div class="enlacebox">${h(r.enlace)}</div>
       <div class="par"><button class="btn pri mini" id="u_tg">Enviar por Telegram</button><button class="btn sec mini" id="u_wa">WhatsApp</button></div>
       <button class="btn sec mini" id="u_cp" style="margin-top:8px">Copiar enlace</button><p class="ayuda">Caduca en 14 días y solo sirve una vez.</p></div>`;
-    $('#u_tg').onclick = () => { const u2 = 'https://t.me/share/url?url=' + encodeURIComponent(r.enlace) + '&text=' + encodeURIComponent(txt); if (tg && tg.openTelegramLink) tg.openTelegramLink(u2); else abrirEnlace(u2); };
-    $('#u_wa').onclick = () => abrirEnlace('https://wa.me/?text=' + encodeURIComponent(txt + r.enlace));
+    $('#u_tg').onclick = () => { const u2 = 'https://t.me/share/url?url=' + encodeURIComponent(r.enlace) + '&text=' + encodeURIComponent(txt.replace(r.enlace, '(enlace arriba)')); if (tg && tg.openTelegramLink) tg.openTelegramLink(u2); else abrirEnlace(u2); };
+    $('#u_wa').onclick = () => abrirEnlace('https://wa.me/?text=' + encodeURIComponent(txt));
     $('#u_cp').onclick = async () => { try { await navigator.clipboard.writeText(r.enlace); aviso('Enlace copiado'); } catch (e) { aviso('Mantén pulsado el enlace para copiarlo', true); } };
   };
   const guardar = async () => {
@@ -795,6 +798,7 @@ function errorInicio(msg) { titulo('Almacén', ''); $('#vista').innerHTML = vaci
   if (tg) { tg.ready(); tg.expand(); tema(); tg.onEvent('themeChanged', tema); try { if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } catch (e) {} }
   if (!tg) { titulo('Almacén', ''); $('#vista').innerHTML = vacio('Abre esta app desde Telegram', 'Entra en el bot del almacén y pulsa el botón «Tareas».'); return; }
   if (typeof API_URL === 'undefined' || /PEGAR/.test(API_URL)) { $('#vista').innerHTML = vacio('Falta configurar la app', 'Pega la dirección de Apps Script en config.js.'); return; }
+  $('#guia').onclick = () => { hap('tap'); abrirEnlace(new URL(D && D.yo.admin ? 'guia-responsables.html' : 'guia.html', location.href).href); };
   D = leerCache();
   if (qs.get('tab')) tab = qs.get('tab');
   if (D) pintar();

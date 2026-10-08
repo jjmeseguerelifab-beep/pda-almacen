@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#002A5C">
+<title>Manual de responsables · Tareas del almacén</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#002A5C;--orange:#E95521;--teal:#1E9C8C;--red:#D92D20;--amber:#B26A00;--bg:#fff;--bg2:#F1F3F6;--ink:#0B1B33;--hint:#677572;--line:rgba(11,27,51,.09)}
+@media (prefers-color-scheme:dark){:root{--navy:#8FB4E6;--bg:#1b2533;--bg2:#121a24;--ink:#EEF2F6;--hint:#93A1AE;--line:rgba(238,242,246,.12)}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg2);color:var(--ink);font:16px/1.5 'Hanken Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased}
+.top{background:#002A5C;color:#fff;padding:28px 20px 26px}
+.top small{display:block;opacity:.75;font-weight:600;font-size:14px}
+.top h1{margin:4px 0 6px;font-size:30px;line-height:1.1;font-weight:700;letter-spacing:-.4px}
+.top p{margin:0;opacity:.85;max-width:34em}
+main{max-width:680px;margin:0 auto;padding:6px 14px 40px}
+h2{font-size:21px;line-height:1.2;color:var(--navy);margin:28px 6px 10px}
+.card{background:var(--bg);border-radius:16px;padding:16px 18px}
+.card p{margin:0 0 10px}.card p:last-child{margin:0}
+ol,ul{margin:0;padding-left:22px}li{margin:6px 0}
+.filas{background:var(--bg);border-radius:16px;overflow:hidden}
+.f{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:12px 16px;position:relative}
+.f+.f::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:1px solid var(--line)}
+.f b{font-weight:700}
+.f span{color:var(--hint)}
+@media (max-width:420px){.f{grid-template-columns:1fr;gap:2px}}
+.nota{color:var(--hint);font-size:14.5px;margin:10px 6px 0}
+.pill{display:inline-block;font-weight:700;font-size:13.5px;padding:2px 10px;border-radius:99px;background:var(--bg2)}
+.pill.o{background:var(--orange);color:#fff}
+.faq b{display:block;margin-top:12px}.faq b:first-child{margin-top:0}
+footer{color:var(--hint);font-size:13.5px;text-align:center;margin-top:30px}
+</style>
+</head>
+<body>
+<header class="top">
+  <small>Almacén Elifab · Solo responsables</small>
+  <h1>Manual de responsables</h1>
+  <p>Para Joaquín y Óscar: todo lo que la guía de operarios no cuenta. Los dos tenéis los mismos permisos.</p>
+</header>
+<main>
+
+<h2>1. Cómo encaja todo</h2>
+<div class="card">
+  <p>El <b>Sheets «PdA Almacen Elifab»</b> es la única fuente de datos. Todo lo que entra (la hoja, la mini app, el botón <b>→ PdA</b> de Outlook) acaba ahí, y el bot (Apps Script, cuenta jjmeseguer.elifab@gmail.com) avisa por Telegram y guarda correos y fotos en Drive. No depende de ningún PC.</p>
+</div>
+
+<h2>2. Crear y repartir tareas</h2>
+<div class="filas">
+  <div class="f"><b>Hoja de Sheets</b><span>Fila nueva con PROBLEMA, TAREA, RESPONSABLE, COMPROMISO. El bot la detecta al momento.</span></div>
+  <div class="f"><b>Mini app · Nueva</b><span>Formulario o plantillas de un toque (recoger, preparar OF, reponer, descargar). Tiempo estimado editable.</span></div>
+  <div class="f"><b>Outlook · → PdA</b><span>Formulario sobre un correo: Desmontaje, Almacenaje o Preparación OF.</span></div>
+</div>
+<p class="nota"><b>Responsable</b>: una persona, <b>BOLSA</b> (todo el almacén, el primero la coge) o <b>PRODUCCIÓN</b> (YEPES y PAQUETE). Columnas que deciden cómo avisa el bot: HORA (sin hora vence a las 15:30), PRIORIDAD, AVISO MIN (vacío = 30), DESTINO (enlace de Maps), FOTO, DURACIÓN MIN (vacío = 30). Las columnas del bot (ID BOT, NOTIFICADO, CONTROL…) no se tocan.</p>
+
+<h2>3. Tareas desde Outlook</h2>
+<div class="card">
+  <ol>
+    <li>Selecciona el correo y pulsa <b>→ PdA</b>. Arriba a la derecha debe poner «Conectado con PdA».</li>
+    <li>Revisa el <b>asunto</b>: es el título de la tarea.</li>
+    <li>Elige el <b>tipo</b>: Desmontaje (Producción desmonta y entrega), Almacenaje (el material ya está aquí) o Preparación OF.</li>
+    <li>Responsable, vencimiento, prioridad, foto, qué se hace con el material y, en desmontajes, <b>quién lo almacena después</b>.</li>
+    <li>Piezas, una por línea (vacío = las del correo), nota y tiempo. Comprueba el resumen y pulsa <b>Crear tarea</b>.</li>
+  </ol>
+  <p style="margin-top:10px">Os llega «✅ Creada desde la plantilla de Outlook» con <b>Ver correo</b> y <b>Anular</b>. Si algún dato no cuadra, llega una tarjeta de revisión y se arregla en la pestaña <b>Correos</b> de la mini app.</p>
+</div>
+
+<h2>4. Desmontaje y almacenaje encadenados</h2>
+<div class="filas">
+  <div class="f"><b>1 · Desmontaje</b><span>Producción (o YEPES / PAQUETE). Se cierra con «Entregado en almacén» y foto si se pidió.</span></div>
+  <div class="f"><b>2 · Almacenaje</b><span>Se crea solo al entregar, para la persona elegida o la bolsa, con la decisión marcada.</span></div>
+  <div class="f"><b>3 · Cierre</b><span>«Almacenado» o «Tirado». Si la decisión está por confirmar, no se puede cerrar hasta que uno de los dos decida.</span></div>
+</div>
+<p class="nota">Un desmontaje vencido se recuerda a Producción y a vosotros cada 2 días laborables. Los desmontajes no suman al ranking.</p>
+
+<h2>5. Seguimiento diario</h2>
+<div class="filas">
+  <div class="f"><b>⚠️ Incidencia</b><span>Resolver el motivo; el operario pulsa Reanudar.</span></div>
+  <div class="f"><b>🔴 Urgente sin empezar</b><span>Hablar con el responsable o reasignar.</span></div>
+  <div class="f"><b>Tarea vencida</b><span>Cambiar la fecha o reasignar.</span></div>
+  <div class="f"><b>📦 Producción ha entregado</b><span>Asignar el almacenaje (si fue a la bolsa) y decidir si falta.</span></div>
+</div>
+<div class="card" style="margin-top:10px">
+  <p><b>Pestaña Equipo</b> de la mini app:</p>
+  <ul>
+    <li><b>Tareas</b>: filtros por estado y por persona; en cada ficha, reasignar, decidir o anular.</li>
+    <li><b>Carga</b>: personas × próximos 5 días laborables con el tiempo estimado. Verde holgado, ámbar más de media jornada, rojo lleno o con retraso. Toca una casilla para ver sus tareas.</li>
+    <li><b>Personas</b>: altas, bajas y cambios de puesto.</li>
+  </ul>
+  <p style="margin-top:10px"><b>Comandos:</b> /equipo (resumen por persona) · /resumen_ahora (envía ya el de las 7:00) · /comprobar (revisa avisos y correos sin esperar) · /guia.</p>
+</div>
+
+<h2>6. Altas de personas</h2>
+<div class="card">
+  <ol>
+    <li>Mini app → Equipo → Personas → <b>Añadir persona</b>: nombre y puesto.</li>
+    <li>Envíale el enlace por WhatsApp o Telegram. Lo abre, pulsa <b>Iniciar</b> y queda vinculado; le llega la bienvenida con la guía.</li>
+    <li>Baja: en su ficha, «De baja» (conserva el historial). Cambio de móvil: «Nuevo enlace».</li>
+  </ol>
+</div>
+
+<h2>7. Recurrentes, plantillas y ajustes</h2>
+<div class="filas">
+  <div class="f"><b>Recurrentes</b><span>Una fila por tarea que se repite. FRECUENCIA: DIARIA · SEMANAL LUN,JUE · MENSUAL 1 · CADA 3 DIAS. Se crean a las 6:50. ÚLTIMA la rellena el bot.</span></div>
+  <div class="f"><b>Plantillas</b><span>Las plantillas de la mini app. PIDE admite DESTINO, HORA, OF y DETALLE; en TAREA se usan {DESTINO}, {OF} y {DETALLE}.</span></div>
+  <div class="f"><b>Destinos</b><span>Proveedores y sitios habituales con su enlace de Google Maps.</span></div>
+  <div class="f"><b>Ajustes</b><span>Horario, avisos, plazos, puntos, DURACION_DEFECTO, JORNADA_MIN y los motivos de incidencia.</span></div>
+  <div class="f"><b>Festivos</b><span>Una fecha por fila: sin avisos ni recurrentes, y no cuentan para los plazos.</span></div>
+</div>
+
+<h2>8. Mantenimiento</h2>
+<div class="card">
+  <p><b>Código nuevo</b>: pegar en Apps Script, guardar y <b>Implementar → Gestionar implementaciones → la de «…Ebg7bxg» → ✏️ → Nueva versión → Implementar</b>. Ejecutar <b>instalar</b> no publica nada.</p>
+  <p><b>Mini app y guías</b>: subir los archivos a GitHub (Add file → Upload files → Commit changes).</p>
+</div>
+<div class="filas" style="margin-top:10px">
+  <div class="f"><b>Botones sin respuesta</b><span>Ejecutar estadoTelegram; si hay error, conectarTelegram.</span></div>
+  <div class="f"><b>Correo sin tarea</b><span>Esperar 5 min o /comprobar; mirar la pestaña Correos.</span></div>
+  <div class="f"><b>«Sin conexión» en Outlook</b><span>La implementación «…Ebg7bxg» no tiene la última versión publicada.</span></div>
+  <div class="f"><b>Operario sin avisos</b><span>En Operarios: TELEGRAM ID relleno y ACTIVO = SI.</span></div>
+</div>
+<p class="nota">El <b>Historial</b> guarda cada cambio con fecha, persona y puntos: es la fuente del ranking y de Power BI. No borréis filas.</p>
+
+<footer>Almacén Elifab · Manual de responsables</footer>
+</main>
+</body>
+</html>
