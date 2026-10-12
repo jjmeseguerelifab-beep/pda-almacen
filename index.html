@@ -75,6 +75,9 @@ main{padding:6px 14px calc(96px + env(safe-area-inset-bottom));max-width:720px;m
 .tag.inc{background:color-mix(in srgb,var(--amber) 16%,transparent);color:var(--amber)}
 .tag.dec{background:color-mix(in srgb,var(--red) 12%,transparent);color:var(--red)}
 .tag.urg{background:var(--red);color:#fff}
+.tag.pend{background:color-mix(in srgb,var(--orange) 15%,transparent);color:var(--orange)}
+.pendbar{margin-top:12px;padding:11px 14px;border-radius:12px;background:color-mix(in srgb,var(--orange) 13%,transparent);color:var(--ink);font-size:14px;font-weight:600;display:flex;gap:10px;align-items:center;justify-content:space-between}
+.pendbar button{border:0;background:none;color:var(--orange);font:inherit;font-weight:700;padding:0;cursor:pointer}
 .coger{grid-column:1/-1;margin-top:10px}
 .vacio{background:var(--bg);border-radius:var(--r);padding:30px 22px;text-align:center;color:var(--hint);margin-top:14px}
 .vacio b{display:block;color:var(--title);font-size:18px;margin-bottom:4px}
@@ -225,7 +228,10 @@ const I = {
   correos: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M4 7l8 6 8-6"/></svg>',
   chev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>',
   atras: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>',
-  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l1.5-2.5h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>'
+  lapiz: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>',
+  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l1.5-2.5h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+  pausa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6v12M15 6v12"/></svg>',
+  reabrir: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/></svg>'
 };
 
 /* ---------- Telegram ---------- */
@@ -257,21 +263,74 @@ const CLAVE = 'pda2_' + (tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.
 function leerCache() { try { const j = JSON.parse(localStorage.getItem(CLAVE) || 'null'); return j && j.mias ? j : null; } catch (e) { return null; } }
 function guardarCache() { try { localStorage.setItem(CLAVE, JSON.stringify(D)); } catch (e) {} }
 let cola = Promise.resolve();
-function api(accion, datos) {
+function api(accion, datos, idem) {
   pend++; marcaSync();
   const p = cola.then(async () => {
+    const ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const reloj = ctl ? setTimeout(() => ctl.abort(), 45000) : null;
     try {
-      const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ accion, initData: tg ? tg.initData : '' }, datos || {})) });
+      const cuerpo = Object.assign({ accion, initData: tg ? tg.initData : '' }, datos || {}, idem ? { idem } : {});
+      const r = await fetch(API_URL, { method: 'POST', body: JSON.stringify(cuerpo), signal: ctl ? ctl.signal : undefined });
       return await r.json();
     } catch (e) { return { ok: false, red: true, msg: 'Sin conexión. Revisa la cobertura y vuelve a intentarlo.' }; }
+    finally { if (reloj) clearTimeout(reloj); }
   });
   cola = p.catch(() => {});
   return p.then(r => {
     pend--;
-    if (r && r.mias && pend === 0) { D = r; guardarCache(); if (tab === 'nueva' && $('#fn')) pestanas(); else pintar(); if (abierta) refrescarAbierta(); }
+    if (idem && !(r && r.red)) { OUT = OUT.filter(x => x.id !== idem); guardarOut(); }
+    if (r && r.mias && pend === 0) { D = r; reaplicar(); guardarCache(); if (tab === 'nueva' && $('#fn')) pestanas(); else pintar(); if (abierta) refrescarAbierta(); }
     marcaSync(r && r.red);
     return r;
   });
+}
+
+/* ---------- bandeja de salida: lo hecho sin cobertura se guarda en el móvil y se envía al volver la conexión ---------- */
+const CLAVE_OUT = 'pda_out_' + (tg && tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'x');
+let OUT = (() => { try { return JSON.parse(localStorage.getItem(CLAVE_OUT) || '[]') || []; } catch (e) { return []; } })();
+function guardarOut() { try { localStorage.setItem(CLAVE_OUT, JSON.stringify(OUT)); return true; } catch (e) { return false; } }
+const pendienteDe = uid => OUT.some(x => x.datos && x.datos.uid === uid);
+function reaplicar() {
+  OUT.forEach(x => {
+    try {
+      if (x.accion === 'accion') aplicar(x.datos.uid, x.datos.act, x.datos.extra || {});
+      else if (x.accion === 'foto' && x.datos.act) aplicar(x.datos.uid, x.datos.act, {});
+      else if (x.accion === 'editar') aplicarEdicion(x.datos.uid, x.datos.campos);
+    } catch (e) {}
+  });
+}
+/** Envía un cambio con clave única (el servidor no lo repite aunque llegue dos veces) y lo guarda hasta que llegue. */
+async function enviar(accion, datos) {
+  const item = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8), accion, datos, t: Date.now() };
+  OUT.push(item);
+  if (!guardarOut() && accion === 'foto') aviso('Poco espacio en el móvil: la foto solo se enviará si hay cobertura ahora', true);
+  const r = await api(accion, datos, item.id);
+  if (r && r.red) { aviso('Sin cobertura: queda guardado y se enviará solo al volver la conexión', true); if (!abierta) pintar(); }
+  return r;
+}
+let vaciando = false;
+async function vaciarOut() {
+  if (vaciando || !OUT.length || pend > 0 || navigator.onLine === false) return;
+  vaciando = true;
+  let enviados = 0;
+  try {
+    while (OUT.length) {
+      const x = OUT[0];
+      const r = await api(x.accion, x.datos, x.id);
+      if (r && r.red) break;
+      enviados++;
+      if (r && !r.ok && !r.repetida) aviso((r.msg || 'No se ha podido guardar') + ' (cambio pendiente)', true);
+    }
+  } finally {
+    vaciando = false;
+    if (enviados && !OUT.length) { aviso('Cambios pendientes enviados'); sincronizar(); }
+    if (!abierta) pintar();
+  }
+}
+function barraPendientes() {
+  if (!OUT.length) return '';
+  const n = OUT.length;
+  return `<div class="pendbar"><span>⏳ ${n} ${n === 1 ? 'cambio' : 'cambios'} sin enviar · se envían al volver la cobertura</span><button type="button" id="reenviar">Reintentar</button></div>`;
 }
 function marcaSync(error) { const s = $('#sync'); s.className = 'sync' + (pend ? ' on' : error ? ' off' : ''); }
 async function sincronizar() { const r = await api('inicio'); if (!r.ok && !D) errorInicio(r.msg); }
@@ -298,7 +357,7 @@ function reloj(t) {
 }
 
 /* ---------- datos locales ---------- */
-const LISTAS = ['mias', 'bolsa', 'equipo', 'creadas'];
+const LISTAS = ['mias', 'bolsa', 'equipo', 'creadas', 'cerradas'];
 function buscar(uid) { if (!D) return null; for (const l of LISTAS) { const t = (D[l] || []).find(x => x.uid === uid); if (t) return t; } return null; }
 function cadaCopia(uid, fn) { LISTAS.forEach(l => (D[l] || []).forEach(t => { if (t.uid === uid) fn(t); })); }
 function quitar(uid, listas) { (listas || ['mias', 'bolsa', 'equipo']).forEach(l => { if (D[l]) D[l] = D[l].filter(t => t.uid !== uid); }); }
@@ -326,6 +385,8 @@ function fila(t, conResp) {
   if (t.estado === 'INCIDENCIA') tags.push(`<span class="tag inc">Incidencia${t.motivo ? ': ' + h(t.motivo) : ''}</span>`);
   if (t.estado === 'EN ESPERA') tags.push('<span class="tag">En espera</span>');
   if (t.flujo && t.decision === 'POR CONFIRMAR') tags.push('<span class="tag dec">Falta decidir</span>');
+  if (cerrada(t)) tags.push(`<span class="tag">${t.estado === 'ANULADO' ? 'Anulada' : 'Completada'}${t.fin ? ' ' + h(String(t.fin).slice(0, 16)) : ''}</span>`);
+  if (pendienteDe(t.uid)) tags.push('<span class="tag pend">Sin enviar</span>');
   if (conResp) meta.push(t.pool ? (t.responsable === 'BOLSA' ? 'Bolsa' : 'Producción') : cap(t.responsable));
   if (t.of) meta.push('OF ' + t.of);
   else if (t.problema) meta.push(t.problema);
@@ -360,6 +421,7 @@ function pintar() {
   else if (tab === 'ranking') { titulo('Ranking', 'Puntos por tareas completadas'); vistaRanking(v); }
   else if (tab === 'equipo') vistaEquipo(v);
   else if (tab === 'correos') vistaCorreos(v);
+  if (OUT.length && tab !== 'nueva') { v.insertAdjacentHTML('afterbegin', barraPendientes()); const b = v.querySelector('#reenviar'); if (b) b.onclick = () => { hap('tap'); vaciarOut(); }; }
   v.querySelectorAll('[data-uid]').forEach(b => b.onclick = e => {
     if (e.target.closest('[data-coger]')) { e.stopPropagation(); return accion(b.dataset.uid, 'coger'); }
     hap('tap'); detalle(b.dataset.uid);
@@ -387,15 +449,18 @@ function vistaEquipo(v) {
   let cuerpo = '';
   if (eqVista === 'tareas') {
     const f = { todas: () => true, tarde: t => t.limite && t.limite < Date.now(), inc: t => t.estado === 'INCIDENCIA', urg: t => t.prioridad === 'URGENTE', dec: t => t.flujo && t.decision === 'POR CONFIRMAR', bolsa: t => t.pool };
-    const fb = [['todas', 'Todas'], ['tarde', 'Con retraso'], ['inc', 'Incidencias'], ['urg', 'Urgentes'], ['dec', 'Falta decidir'], ['bolsa', 'Sin dueño']];
+    f.espera = t => t.estado === 'EN ESPERA';
+    const fb = [['todas', 'Todas'], ['tarde', 'Con retraso'], ['inc', 'Incidencias'], ['urg', 'Urgentes'], ['dec', 'Falta decidir'], ['bolsa', 'Sin dueño'], ['espera', 'En espera']];
+    const cerr = D.cerradas || [];
     const deP = t => !eqPersona || (t.responsable || '').toUpperCase() === eqPersona;
     const deD = t => !eqDia || (eqDia === 'tarde' ? t.limite && t.limite < Date.now() : t.compromiso === eqDia);
     const quien = {}; ts.forEach(t => { const k = (t.responsable || '').toUpperCase(); quien[k] = (quien[k] || 0) + 1; });
-    const lst = ts.filter(f[filtro]).filter(deP).filter(deD);
-    cuerpo = `<div class="filtros">${fb.map(([k, n]) => `<button data-f="${k}" aria-pressed="${filtro === k}">${n} <span class="num">${ts.filter(deP).filter(f[k]).length}</span></button>`).join('')}</div>
+    const lst = filtro === 'cerradas' ? cerr.filter(deP) : ts.filter(f[filtro] || f.todas).filter(deP).filter(deD);
+    cuerpo = `<div class="filtros">${fb.map(([k, n]) => `<button data-f="${k}" aria-pressed="${filtro === k}">${n} <span class="num">${ts.filter(deP).filter(f[k]).length}</span></button>`).join('')}<button data-f="cerradas" aria-pressed="${filtro === 'cerradas'}">Cerradas 14 días <span class="num">${cerr.filter(deP).length}</span></button></div>
       <div class="filtros"><button data-p="" aria-pressed="${!eqPersona}">Todos</button>${Object.keys(quien).sort().map(k => `<button data-p="${h(k)}" aria-pressed="${eqPersona === k}">${h(POOLS.includes(k) ? cap(k) : nombreCorto(k))} <span class="num">${quien[k]}</span></button>`).join('')}</div>
       ${eqDia ? `<span class="chipx" data-xd="1">${eqDia === 'tarde' ? 'Con retraso' : fechaTxt(eqDia)} ✕</span>` : ''}` +
-      (lst.length ? `<div class="grupo" style="margin-top:12px">${lst.map(t => fila(t, true)).join('')}</div>` : vacio('Nada por aquí', 'No hay tareas con este filtro.'));
+      (lst.length ? `<div class="grupo" style="margin-top:12px">${lst.map(t => fila(t, true)).join('')}</div>` : vacio('Nada por aquí', 'No hay tareas con este filtro.')) +
+      (filtro === 'cerradas' ? '<p class="ayuda">Toca una tarea cerrada por error para reabrirla. Si estaba completada, se restan los puntos que dio.</p>' : '');
   } else if (eqVista === 'carga') cuerpo = cuadroCarga(ts);
   else cuerpo = listaPersonas();
   v.innerHTML = cab + cuerpo;
@@ -526,7 +591,9 @@ function detalle(uid, refresco) {
     t.comentarios ? ['Nota', t.comentarios.replace(/https?:\/\/\S+/g, '').trim()] : null,
     t.foto ? ['Foto', t.foto === 'OBLIGATORIA' ? 'Obligatoria al cerrar' : 'Opcional'] : null,
     t.duracion ? ['Tiempo estimado', minTxt(t.duracion)] : null,
-    t.creadoPor ? ['Creada por', cap(t.creadoPor)] : null].filter(x => x && x[1]);
+    t.creadoPor ? ['Creada por', cap(t.creadoPor)] : null,
+    cerrada(t) && t.fin ? [t.estado === 'ANULADO' ? 'Anulada' : 'Cerrada', String(t.fin).slice(0, 16) + (t.resultado ? ' · ' + cap(t.resultado) : '')] : null,
+    t.estado === 'EN ESPERA' && t.motivo ? ['En espera por', t.motivo] : null].filter(x => x && x[1]);
   const enl = [];
   if (t.destino) enl.push(['Cómo llegar', t.destino]);
   if (/^https?:/.test(t.origen)) enl.push(['Ver el correo', t.origen]);
@@ -541,16 +608,21 @@ function detalle(uid, refresco) {
     const c = cierres(t);
     prim = [c[0][1], () => accion(uid, c[0][0])];
     if (c[1]) sec = [c[1][1], () => accion(uid, c[1][0])];
-    if (t.estado !== 'EN CURSO') acc += `<button class="btn sec" data-a="cur">${t.estado === 'INCIDENCIA' ? 'Reanudar' : 'Empezar'}</button>`;
+    if (t.estado !== 'EN CURSO') acc += `<button class="btn sec" data-a="cur">${t.estado === 'INCIDENCIA' || t.estado === 'EN ESPERA' ? 'Reanudar' : 'Empezar'}</button>`;
     if (t.estado !== 'INCIDENCIA') acc += `<button class="btn warn" data-a="inc">Tengo una incidencia</button>`;
+    if (t.estado !== 'EN ESPERA') acc += `<button class="btn sec" data-a="esperar">${I.pausa}Poner en espera</button>`;
     if (!t.evidencia) acc += `<button class="btn sec" data-a="foto">${I.cam}Añadir foto</button>`;
   }
+  const puedeEditar = abiertaT && (adm || (t.creadoPor || '').toUpperCase() === yoN());
+  if (puedeEditar && !adm) acc += `<button class="btn sec" data-a="editar">${I.lapiz}Modificar tarea</button>`;
   let gest = '';
+  if (adm && abiertaT) gest += `<button class="btn sec" data-a="editar">${I.lapiz}Modificar tarea</button>`;
   if (adm && abiertaT) {
     if (t.flujo && t.decision === 'POR CONFIRMAR') gest += `<div class="par"><button class="btn sec" data-dec="ALMACENAR">Se almacena</button><button class="btn sec" data-dec="TIRAR">Se tira</button></div>`;
     gest += `<label class="c" for="reasig">Reasignar a</label><div class="par"><select class="in" id="reasig">${personasOpts(t.responsable)}</select><button class="btn sec" data-a="asg">Reasignar</button></div>`;
     gest += `<button class="btn red" data-a="anular">Anular tarea</button>`;
   }
+  if (adm && cerrada(t)) gest += `<button class="btn sec" data-a="reabrir">${I.reabrir}Reabrir tarea</button>`;
   const nativos = usaBotonesTg();
   const primHtml = prim && !nativos ? `<button class="btn pri" data-p="1">${h(prim[0])}</button>` + (sec ? `<button class="btn out" data-p="2">${h(sec[0])}</button>` : '') : '';
   const sinNativoSec = sec && nativos && !(tg && tg.SecondaryButton) ? `<button class="btn out" data-p="2">${h(sec[0])}</button>` : '';
@@ -569,13 +641,74 @@ function detalle(uid, refresco) {
   P.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
     const a = b.dataset.a; hap('tap');
     if (a === 'inc') return motivos(t);
+    if (a === 'editar') return fichaEditar(t);
     if (a === 'foto') { fotoPend = { uid, act: '' }; return $('#camara').click(); }
     if (a === 'asg') return accion(uid, 'asg', { responsable: $('#reasig').value });
     if (a === 'anular') { if (tg) return tg.showConfirm('¿Anular la tarea #' + t.ref + '?', ok => ok && accion(uid, 'anular')); return confirm('¿Anular?') && accion(uid, 'anular'); }
+    if (a === 'esperar') return motivosEspera(t);
+    if (a === 'reabrir') {
+      const txt = '¿Reabrir la tarea #' + t.ref + '?' + (t.estado === 'COMPLETO' ? ' Se restan los puntos que dio y se vuelve a avisar a ' + cap(t.responsable) + '.' : '');
+      if (tg) return tg.showConfirm(txt, ok => ok && accion(uid, 'reabrir'));
+      return confirm(txt) && accion(uid, 'reabrir');
+    }
     accion(uid, a);
   });
   P.querySelectorAll('[data-dec]').forEach(b => b.onclick = () => accion(uid, 'dec', { decision: b.dataset.dec }));
   if (nativos) botonPrincipal(prim ? prim[0] : '', prim ? prim[1] : null, sec);
+}
+function fichaEditar(t) {
+  abierta = { tipo: 'sub', uid: t.uid };
+  const html = `${tg ? '' : `<button class="atras" id="atras">${I.atras}Volver</button>`}<div class="cab"><div class="ref num">#${h(t.ref)}</div><h2>Modificar tarea</h2></div>
+    <div class="cuerpo"><form class="form" id="fe">
+    <label class="c" for="e_tarea">Qué hay que hacer</label><textarea class="in" id="e_tarea">${h(t.tarea)}</textarea>
+    <label class="c" for="e_resp">Para quién</label><select class="in" id="e_resp">${personasOpts(t.responsable)}</select>
+    <div class="dos"><div><label class="c" for="e_fecha">Vence</label><input class="in" type="date" id="e_fecha" value="${h(t.compromiso || '')}"></div>
+      <div><label class="c" for="e_hora">Hora límite</label><input class="in" type="time" id="e_hora" value="${h(t.hora || '')}"></div></div>
+    <label class="c">Prioridad</label>${seg('e_prio', [['NORMAL', 'Normal'], ['ALTA', 'Alta'], ['URGENTE', 'Urgente']], t.prioridad || 'NORMAL', 'prio')}
+    <label class="c">Foto al cerrar</label>${seg('e_foto', [['', 'No'], ['OPCIONAL', 'Opcional'], ['OBLIGATORIA', 'Obligatoria']], t.foto || '')}
+    <div class="dos"><div><label class="c" for="e_dur">Tiempo estimado (min)</label><input class="in num" type="number" id="e_dur" min="5" step="5" value="${h(t.duracion || D.duracionDef || 30)}"></div>
+      <div><label class="c" for="e_aviso">Avisar antes (min)</label><input class="in num" type="number" id="e_aviso" min="5" step="5" value="${h(t.aviso || D.avisoDef || 30)}"></div></div>
+    <label class="c" for="e_dest">Destino (enlace de Google Maps)</label><input class="in" id="e_dest" inputmode="url" value="${h(t.destino || '')}" placeholder="Solo si hay que ir a algún sitio">
+    <label class="c" for="e_com">Nota</label><input class="in" id="e_com" value="${h(t.comentarios || '')}">
+    <label class="c" for="e_prob">Asunto</label><input class="in" id="e_prob" value="${h(t.problema || '')}">
+    ${usaBotonesTg() ? '' : '<div style="margin-top:18px"><button class="btn pri" type="submit">Guardar cambios</button></div>'}</form>
+    <p class="ayuda">Al guardar, la persona responsable recibe la tarea actualizada. Si cambias quién la hace, al anterior se le avisa de que ya no es suya.</p></div>`;
+  $('#pag').innerHTML = html; $('#pag').scrollTop = 0;
+  if (!tg) $('#atras').onclick = () => detalle(t.uid, true);
+  activarSeg($('#pag'));
+  const guardar = () => {
+    const campos = { tarea: $('#e_tarea').value.trim(), responsable: $('#e_resp').value, fecha: $('#e_fecha').value, hora: $('#e_hora').value,
+      prioridad: segVal('e_prio'), foto: segVal('e_foto'), duracion: +$('#e_dur').value || 0, aviso: +$('#e_aviso').value || 0,
+      destino: $('#e_dest').value.trim(), comentarios: $('#e_com').value.trim(), problema: $('#e_prob').value.trim() };
+    if (!campos.tarea) { $('#e_tarea').focus(); return aviso('La descripción no puede quedar vacía', true); }
+    if (!campos.fecha) { $('#e_fecha').focus(); return aviso('Indica la fecha de vencimiento', true); }
+    // 1) se ve al momento
+    aplicarEdicion(t.uid, campos);
+    guardarCache(); cerrarPag(); pintar(); aviso('Tarea modificada');
+    // 2) se guarda en segundo plano (si no hay cobertura, queda en la bandeja de salida)
+    enviar('editar', { uid: t.uid, campos }).then(r => { if (!r.ok && !r.red) { aviso(r.msg || 'No se ha podido guardar', true); sincronizar(); } });
+  };
+  $('#fe').onsubmit = e => { e.preventDefault(); guardar(); };
+  if (usaBotonesTg()) botonPrincipal('Guardar cambios', guardar);
+}
+
+function aplicarEdicion(uid, campos) {
+  cadaCopia(uid, x => {
+    Object.assign(x, { tarea: campos.tarea, problema: campos.problema, compromiso: campos.fecha, hora: campos.hora, prioridad: campos.prioridad,
+      foto: campos.foto, duracion: campos.duracion, aviso: campos.aviso, destino: campos.destino, comentarios: campos.comentarios });
+    x.limite = Date.parse(campos.fecha + 'T' + (campos.hora || '15:30') + ':00');
+    if (campos.responsable !== x.responsable) { x.responsable = campos.responsable; x.pool = POOLS.includes(campos.responsable); }
+  });
+  if (String(campos.responsable || '').toUpperCase() !== yoN()) quitar(uid, ['mias']);
+}
+function motivosEspera(t) {
+  abierta = { tipo: 'sub', uid: t.uid };
+  botonPrincipal('');
+  const ops = ['Esperando material', 'Esperando a otro dpto.', 'Esperando al cliente / proveedor', 'Lo retomo más tarde', 'Otro motivo'];
+  $('#pag').innerHTML = `${tg ? '' : `<button class="atras" id="atras">${I.atras}Volver</button>`}<div class="cab"><div class="ref">#${h(t.ref)}</div><h2>¿Por qué queda en espera?</h2></div><div class="cuerpo"><p class="ayuda">Mientras esté en espera no habrá recordatorios ni avisos de retraso. Para seguir, pulsa «Reanudar».</p><div class="datos">` +
+    ops.map((m, i) => `<button class="enlace" data-m="${i}">${h(m)}${I.chev}</button>`).join('') + '</div></div>';
+  if (!tg) $('#atras').onclick = () => detalle(t.uid, true);
+  $('#pag').querySelectorAll('[data-m]').forEach(b => b.onclick = () => accion(t.uid, 'esperar', { motivo: ops[+b.dataset.m] }));
 }
 function personasOpts(sel) {
   const ps = [{ nombre: 'BOLSA', t: 'Bolsa (equipo de almacén)' }, { nombre: 'PRODUCCIÓN', t: 'Producción (equipo)' }].concat((D.personas || []).map(p => ({ nombre: p.nombre, t: cap(p.nombre) })));
@@ -601,12 +734,22 @@ function hojaFotoOpcional(uid, act) {
 }
 
 /* ---------- acciones optimistas ---------- */
-const MSG = { coger: 'Es tuya. ¡A por ella!', cur: 'Marcada en curso', ok: 'Tarea completada', alm: 'Material almacenado', tir: 'Material tirado', inc: 'Incidencia avisada', dec: 'Decisión guardada', asg: 'Tarea reasignada', anular: 'Tarea anulada' };
+const MSG = { coger: 'Es tuya. ¡A por ella!', cur: 'Marcada en curso', ok: 'Tarea completada', alm: 'Material almacenado', tir: 'Material tirado', inc: 'Incidencia avisada', dec: 'Decisión guardada', asg: 'Tarea reasignada', anular: 'Tarea anulada', esperar: 'Tarea en espera', reabrir: 'Tarea reabierta' };
 function aplicar(uid, act, extra) {
   const t = buscar(uid); if (!t) return;
   if (act === 'coger') { cadaCopia(uid, x => { x.responsable = D.yo.nombre; x.pool = false; }); D.bolsa = D.bolsa.filter(x => x.uid !== uid); if (!D.mias.some(x => x.uid === uid)) D.mias.push(Object.assign({}, t)); }
   else if (act === 'cur') cadaCopia(uid, x => { x.estado = 'EN CURSO'; });
   else if (act === 'inc') cadaCopia(uid, x => { x.estado = 'INCIDENCIA'; x.motivo = extra.motivo; });
+  else if (act === 'esperar') cadaCopia(uid, x => { x.estado = 'EN ESPERA'; x.motivo = extra.motivo || ''; });
+  else if (act === 'reabrir') {
+    if (!cerrada(t)) return;
+    cadaCopia(uid, x => { x.estado = 'PENDIENTE'; x.fin = ''; x.resultado = ''; x.evidencia = ''; });
+    D.cerradas = (D.cerradas || []).filter(x => x.uid !== uid);
+    const copia = Object.assign({}, t);
+    if (t.pool) { if (!D.bolsa.some(x => x.uid === uid)) D.bolsa.push(copia); }
+    else if (esMia(t) && !D.mias.some(x => x.uid === uid)) D.mias.push(copia);
+    if (D.equipo && !D.equipo.some(x => x.uid === uid)) D.equipo.push(Object.assign({}, copia));
+  }
   else if (act === 'dec') cadaCopia(uid, x => { x.decision = extra.decision; });
   else if (['ok', 'alm', 'tir', 'anular'].includes(act)) quitar(uid);
   else if (act === 'asg') { cadaCopia(uid, x => { x.responsable = extra.responsable; x.pool = POOLS.includes(extra.responsable); }); if (extra.responsable.toUpperCase() !== yoN()) quitar(uid, ['mias']); }
@@ -625,9 +768,9 @@ function accion(uid, act, extra) {
   if (['ok', 'alm', 'tir', 'anular', 'coger', 'asg', 'inc'].includes(act)) { if (abierta) cerrarPag(); }
   else if (abierta) detalle(uid, true);
   pintar(); aviso(MSG[act] || 'Guardado');
-  // 2) se guarda en segundo plano
-  api('accion', { uid, act, extra }).then(r => {
-    if (r.ok) return;
+  // 2) se guarda en segundo plano (sin cobertura queda en la bandeja de salida y se reintenta sola)
+  enviar('accion', { uid, act, extra }).then(r => {
+    if (r.ok || r.red) return;
     if (r.needPhoto) { fotoPend = { uid, act: r.act }; aviso('Esta tarea necesita una foto', true); sincronizar(); return; }
     aviso(r.msg || 'No se ha podido guardar', true); sincronizar();
   });
@@ -641,7 +784,8 @@ $('#camara').onchange = async e => {
   try { b64 = await comprimir(f); } catch (x) { return aviso('No se ha podido leer la foto', true); }
   if (act) { aplicar(uid, act, {}); guardarCache(); if (abierta) cerrarPag(); pintar(); aviso((MSG[act] || 'Guardado') + ' · subiendo foto'); }
   else aviso('Subiendo foto…');
-  const r = await api('foto', { uid, act, b64 });
+  const r = await enviar('foto', { uid, act, b64 });
+  if (r.red) return;
   if (!r.ok) { aviso(r.msg || 'No se ha podido subir la foto', true); sincronizar(); }
   else if (!act) aviso('Foto guardada');
 };
@@ -729,8 +873,9 @@ function vistaNueva(v) {
       duracion: $('#f_dur').value, of: $('#x_of') ? $('#x_of').value.trim() : '', comentarios: $('#f_com').value.trim() };
     if (!tarea.tarea) { $('#f_tarea').focus(); return aviso('Escribe qué hay que hacer', true); }
     if (tg && tg.MainButton) tg.MainButton.showProgress();
-    const r = await api('crear', { tarea });
+    const r = await enviar('crear', { tarea });
     if (tg && tg.MainButton) tg.MainButton.hideProgress();
+    if (r.red) { $('#fn').reset(); plantSel = -1; tab = 'mias'; pintar(); return; }
     if (!r.ok) return aviso(r.msg, true);
     aviso(r.msg); $('#fn').reset(); plantSel = -1; pintar();
   };
@@ -804,8 +949,11 @@ function errorInicio(msg) { titulo('Almacén', ''); $('#vista').innerHTML = vaci
   if (D) pintar();
   const primera = api('inicio').then(r => { if (!r.ok && !D) errorInicio(r.msg); return r; });
   if (qs.get('correo')) primera.then(() => { if (D && D.yo.admin) { tab = 'correos'; pintar(); triaje(qs.get('correo')); } });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && pend === 0) sincronizar(); });
-  setInterval(() => { if (!document.hidden && pend === 0 && !abierta && tab !== 'nueva') sincronizar(); }, 60000);
+  primera.then(() => setTimeout(vaciarOut, 500));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && pend === 0) { if (OUT.length) vaciarOut(); else sincronizar(); } });
+  window.addEventListener('online', () => setTimeout(vaciarOut, 800));
+  setInterval(() => { if (OUT.length) vaciarOut(); }, 30000);
+  setInterval(() => { if (!document.hidden && pend === 0 && !OUT.length && !abierta && tab !== 'nueva') sincronizar(); }, 60000);
 })();
 </script>
 </body>

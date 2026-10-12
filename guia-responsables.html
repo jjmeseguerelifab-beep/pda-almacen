@@ -82,11 +82,13 @@ footer{color:var(--hint);font-size:13.5px;text-align:center;margin-top:30px}
   <div class="f"><b>🔴 Urgente sin empezar</b><span>Hablar con el responsable o reasignar.</span></div>
   <div class="f"><b>Tarea vencida</b><span>Cambiar la fecha o reasignar.</span></div>
   <div class="f"><b>📦 Producción ha entregado</b><span>Asignar el almacenaje (si fue a la bolsa) y decidir si falta.</span></div>
+  <div class="f"><b>⏸️ En espera</b><span>Tarea parada por algo ajeno (material, otro dpto.). Sin recordatorios ni avisos de retraso hasta que alguien pulse Reanudar.</span></div>
+  <div class="f"><b>↩️ Cerrada por error</b><span>Equipo → filtro «Cerradas 14 días» → la tarea → Reabrir. Vuelve a PENDIENTE, se avisa otra vez al responsable y se restan los puntos que dio.</span></div>
 </div>
 <div class="card" style="margin-top:10px">
   <p><b>Pestaña Equipo</b> de la mini app:</p>
   <ul>
-    <li><b>Tareas</b>: filtros por estado y por persona; en cada ficha, reasignar, decidir o anular.</li>
+    <li><b>Tareas</b>: filtros por estado (también «En espera» y «Cerradas 14 días») y por persona; en cada ficha, modificar, reasignar, decidir, anular o reabrir.</li>
     <li><b>Carga</b>: personas × próximos 5 días laborables con el tiempo estimado. Verde holgado, ámbar más de media jornada, rojo lleno o con retraso. Toca una casilla para ver sus tareas.</li>
     <li><b>Personas</b>: altas, bajas y cambios de puesto.</li>
   </ul>
@@ -104,11 +106,11 @@ footer{color:var(--hint);font-size:13.5px;text-align:center;margin-top:30px}
 
 <h2>7. Recurrentes, plantillas y ajustes</h2>
 <div class="filas">
-  <div class="f"><b>Recurrentes</b><span>Una fila por tarea que se repite. FRECUENCIA: DIARIA · SEMANAL LUN,JUE · MENSUAL 1 · CADA 3 DIAS. Se crean a las 6:50. ÚLTIMA la rellena el bot.</span></div>
+  <div class="f"><b>Recurrentes</b><span>Una fila por tarea que se repite. FRECUENCIA: DIARIA · SEMANAL LUN,JUE · MENSUAL 1 · CADA 3 DIAS. MENSUAL 31 = último día del mes; si cae en festivo o fin de semana, se crea el siguiente laborable. Se crean a las 6:50. ÚLTIMA la rellena el bot.</span></div>
   <div class="f"><b>Plantillas</b><span>Las plantillas de la mini app. PIDE admite DESTINO, HORA, OF y DETALLE; en TAREA se usan {DESTINO}, {OF} y {DETALLE}.</span></div>
   <div class="f"><b>Destinos</b><span>Proveedores y sitios habituales con su enlace de Google Maps.</span></div>
-  <div class="f"><b>Ajustes</b><span>Horario, avisos, plazos, puntos, DURACION_DEFECTO, JORNADA_MIN y los motivos de incidencia.</span></div>
-  <div class="f"><b>Festivos</b><span>Una fecha por fila: sin avisos ni recurrentes, y no cuentan para los plazos.</span></div>
+  <div class="f"><b>Ajustes</b><span>Horario, avisos, plazos, puntos, DURACION_DEFECTO, JORNADA_MIN, ARCHIVAR_DIAS, COPIAS_A_GUARDAR y los motivos de incidencia. Si cambias HORA_INICIO o HORA_FIN, el bot ajusta solo su horario de trabajo.</span></div>
+  <div class="f"><b>Festivos</b><span>Una fecha por fila: sin avisos ni recurrentes, y no cuentan para los plazos. Cada diciembre, añadir los del año siguiente (los locales de Murcia salen en el BORM).</span></div>
 </div>
 
 <h2>8. Mantenimiento</h2>
@@ -116,13 +118,22 @@ footer{color:var(--hint);font-size:13.5px;text-align:center;margin-top:30px}
   <p><b>Código nuevo</b>: pegar en Apps Script, guardar y <b>Implementar → Gestionar implementaciones → la de «…Ebg7bxg» → ✏️ → Nueva versión → Implementar</b>. Ejecutar <b>instalar</b> no publica nada.</p>
   <p><b>Mini app y guías</b>: subir los archivos a GitHub (Add file → Upload files → Commit changes).</p>
 </div>
+<div class="card" style="margin-top:10px">
+  <p><b>Cada noche a las 0:00</b> el sistema hace solo:</p>
+  <ul>
+    <li><b>Copia de seguridad</b> del Excel en Drive → PdA Almacén Elifab → Copias de seguridad (guarda las últimas 30).</li>
+    <li><b>Archivo</b>: las tareas cerradas hace más de 90 días pasan a la pestaña «Archivo» (siguen ahí para consultas y Power BI). El Nº nunca se repite.</li>
+    <li>Limpieza de mensajes viejos e invitaciones caducadas.</li>
+  </ul>
+  <p style="margin-top:10px"><b>Vigilancia</b>: si el bot falla 3 veces seguidas o lleva más de 30 min parado en horario, os llega un aviso 🛠 por Telegram y por correo.</p>
+</div>
 <div class="filas" style="margin-top:10px">
   <div class="f"><b>Botones sin respuesta</b><span>Ejecutar estadoTelegram; si hay error, conectarTelegram.</span></div>
   <div class="f"><b>Correo sin tarea</b><span>Esperar 5 min o /comprobar; mirar la pestaña Correos.</span></div>
   <div class="f"><b>«Sin conexión» en Outlook</b><span>La implementación «…Ebg7bxg» no tiene la última versión publicada.</span></div>
   <div class="f"><b>Operario sin avisos</b><span>En Operarios: TELEGRAM ID relleno y ACTIVO = SI.</span></div>
 </div>
-<p class="nota">El <b>Historial</b> guarda cada cambio con fecha, persona y puntos: es la fuente del ranking y de Power BI. No borréis filas.</p>
+<p class="nota">El <b>Historial</b> guarda cada cambio con fecha, persona, puntos y los datos de la tarea en ese momento (EVENTO, ACTOR, RESPONSABLE, PRIORIDAD, COMPROMISO, EN PLAZO, DURACIÓN…): es la fuente del ranking y de Power BI. No borréis filas.</p>
 
 <footer>Almacén Elifab · Manual de responsables</footer>
 </main>
